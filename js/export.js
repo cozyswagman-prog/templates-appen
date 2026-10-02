@@ -104,11 +104,19 @@ window.Exporter = (function () {
 
     const sidlista = pages.map(p => '  - ' + p.file + ' (' + p.title + ')').join('\n');
     zip.file('LASMIG.txt',
-      'Din hemsida ar klar!\n\n' +
+      'Din hemsida är nedladdad – den är inte publicerad på nätet ännu.\n\n' +
+      'TITTA PÅ HEMSIDAN\n' +
+      '1. Packa upp zip-filen till en egen mapp.\n' +
+      '2. Öppna index.html i din webbläsare. Kontrollera texter, bilder och länkar.\n\n' +
+      'FORTSÄTT REDIGERA\n' +
+      'Öppna projektet i Templates under Mina projekt. Spara också en projektfil\n' +
+      'som säkerhetskopia; zip-filen kan inte importeras som ett redigerbart projekt.\n\n' +
       'Filer:\n' + sidlista + '\n  - mappen images (dina bilder)\n' +
       (fontFiles.size ? '  - mappen fonts (typsnitt, se fonts/LICENS.txt)\n' : '') + '\n' +
-      '1. Ladda upp ALLA filer till ditt webbhotell.\n' +
-      '2. Klart - sidan fungerar direkt, inga installationer behovs.\n\n' +
+      'PUBLICERA PÅ NÄTET\n' +
+      'När innehållet är kontrollerat: ladda upp alla uppackade filer och mappar\n' +
+      'till webbplatsens mapp hos ditt webbhotell. Behåll mapparnas struktur.\n' +
+      'Öppna därefter webbplatsens adress och kontrollera att den fungerar.\n\n' +
       'Skapad med Templates.');
 
     const blob = await zip.generateAsync({ type: 'blob' });

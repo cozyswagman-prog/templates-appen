@@ -311,7 +311,7 @@
       item.textContent = page.title + ': ' + images + ' exempelbilder och ' + texts + ' oförändrade textfält.';
       review.appendChild(item);
     });
-    document.getElementById('export-summary').textContent = 'Kontrollera att namn, priser, kontaktuppgifter och bilder stämmer. Oförändrade fält kan vara rätt för dig.';
+    document.getElementById('export-summary').textContent = 'Kontrollera att namn, priser, kontaktuppgifter och bilder stämmer. Oförändrade fält kan vara rätt för dig. Du laddar ner hemsidan som en fil; den publiceras inte på nätet.';
     document.querySelector('.editor-more').open = false;
     exportDialog.showModal();
   });

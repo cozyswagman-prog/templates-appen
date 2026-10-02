@@ -46,6 +46,10 @@ npx -y serve -l 3456 .
   ändringar när användaren går till galleriet; en webbläsarvarning begärs även vid omladdning.
 - **Mer → Spara som projektfil** tar med de senaste ändringarna direkt från editorn.
   **Mer → Exportera sajt (.zip)** visar först antal oförändrade textfält och exempelbilder per sida.
+- Exporten förklarar att nedladdning inte publicerar hemsidan. `LASMIG.txt` beskriver
+  hur kunden packar upp, granskar, fortsätter redigera med projektfil och publicerar.
+- Exempelbildernas instruktioner visas i editorns fältetiketter; SVG-bilderna saknar
+  synlig instruktionstext som annars beskärs i olika bildformat.
 - Caféets namn i menyraden kan kopieras till alla sidor med ett uttryckligt knapptryck.
   Detta använder `data-shared` och ändrar inga slotnummer eller projektfilformat.
 
