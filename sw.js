@@ -43,7 +43,8 @@ const CORE = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE)
-      .then(cache => cache.addAll(CORE))
+      // 'reload' kringgår webbläsarens HTTP-cache så nya versionen hämtas direkt
+      .then(cache => cache.addAll(CORE.map(u => new Request(u, { cache: 'reload' }))))
       .catch(err => console.warn('Förcachning misslyckades delvis:', err))
       .then(() => self.skipWaiting())
   );
@@ -63,7 +64,9 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
-    fetch(event.request)
+    // 'no-cache' = omvalidera alltid mot servern (GitHub Pages cachar annars
+    // filer i 10 min i webbläsaren och uppdateringar dröjer)
+    fetch(event.request, { cache: 'no-cache' })
       .then(response => {
         if (response && (response.ok || response.type === 'opaque')) {
           const copy = response.clone();
