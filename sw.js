@@ -1,8 +1,8 @@
 // Service worker: gör appen installerbar och offline-kapabel.
 // Strategi: nätverk först (så uppdateringar alltid slår igenom när nät finns),
 // cache som reserv (så appen fungerar offline).
-// OBS: Bumpa VERSION vid varje release — den avgör cachens namn.
-const VERSION = '1.3.0';
+// VERSION stämplas automatiskt av deploy-workflowet vid varje push.
+const VERSION = 'dev';
 const CACHE = 'templates-' + VERSION;
 
 const CORE = [

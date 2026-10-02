@@ -75,10 +75,26 @@
   <div id="toast" class="toast" hidden></div>
 
   <script>
-    // Service worker gör appen installerbar och offline-kapabel.
+    // Service worker gör appen installerbar, offline-kapabel och självuppdaterande:
+    // när en ny version deployats laddas appen om automatiskt — men aldrig mitt
+    // i en redigering, då visas bara ett meddelande.
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(err =>
-        console.warn('Service worker kunde inte registreras:', err));
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const nySw = reg.installing;
+          if (!nySw) return;
+          nySw.addEventListener('statechange', () => {
+            if (nySw.state !== 'installed' || !navigator.serviceWorker.controller) return;
+            const redigerar = !document.getElementById('view-editor').hidden;
+            if (redigerar) {
+              window.showToast && window.showToast('Ny version finns — spara och gå till galleriet så uppdateras appen.');
+            } else {
+              window.showToast && window.showToast('Appen uppdaterades — laddar om…');
+              setTimeout(() => location.reload(), 1200);
+            }
+          });
+        });
+      }).catch(err => console.warn('Service worker kunde inte registreras:', err));
     }
   </script>
   <script src="js/version.js"></script>

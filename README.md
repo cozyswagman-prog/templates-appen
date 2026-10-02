@@ -4,12 +4,26 @@ Ett mini-CMS: kunden väljer en färdig hemsida ur ett galleri, byter bilder och
 numrerade rutor, och laddar ner sin färdiga sajt som en zip (ren HTML — fungerar på vilket
 webbhotell som helst). Ingen build-kedja, inget backend; allt är statiska filer.
 
-## Appen på claude.ai (telefon/surfplatta)
+## Installerbar app (PWA)
 
-Appen är publicerad som privat sida: https://claude.ai/artifact/E73XzAx9PoJfTHfPftmvpr
-(bara ägaren kan öppna den; kräver inloggning på claude.ai). `artifact.html` är
-publiceringsversionen av `index.html` — **håll dem i synk** vid ändringar i sidstrukturen.
-Uppdatering: be Claude publicera om på samma länk efter kodändringar. Nedladdningar går
+Appen är deployad på GitHub Pages: **https://cozyswagman-prog.github.io/templates-appen/**
+Öppna länken på telefonen → "Lägg till på hemskärmen"/"Installera app" → den blir en
+riktig app med egen ikon, fullskärm och offline-stöd (service worker, `sw.js`).
+
+**Automatisk uppdatering:** varje push till `main` triggar GitHub Actions
+(`.github/workflows/deploy.yml`) som stämplar versionen automatiskt
+(`1.3.<antal commits>` — rör aldrig `js/version.js`/`sw.js` för hand) och deployar
+till Pages. Installerade appar upptäcker nya versionen och laddar om sig själva
+(aldrig mitt i en redigering). Versionen syns längst ner i galleriet.
+
+Repot är publikt: https://github.com/cozyswagman-prog/templates-appen — lägg aldrig
+kunddata, riktiga företagsnamn eller hemligheter i koden.
+
+## Appen på claude.ai (reservlänk)
+
+Även publicerad som privat sida: https://claude.ai/artifact/E73XzAx9PoJfTHfPftmvpr
+(kräver inloggning på claude.ai). `artifact.html` är publiceringsversionen av
+`index.html` — **håll dem i synk** vid ändringar i sidstrukturen. Nedladdningar går
 där via claude:s downloads-kapacitet (se `js/save.js`); lokalt används vanliga länkar.
 
 ## Köra appen
