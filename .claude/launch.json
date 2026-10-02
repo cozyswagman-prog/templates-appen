@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "templates-appen",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "serve", "-l", "3456", "."],
+      "port": 3456
+    }
+  ]
+}
