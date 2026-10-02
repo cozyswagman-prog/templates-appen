@@ -58,6 +58,7 @@ window.Exporter = (function () {
         el.removeAttribute('data-label');
         el.removeAttribute('data-multiline');
         el.removeAttribute('data-slot-active');
+        el.removeAttribute('data-shared');
       });
 
       // Sidtitel: projektnamn (+ sidans namn för undersidor)

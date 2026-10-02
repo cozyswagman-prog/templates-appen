@@ -26,12 +26,11 @@
       <section id="my-projects-section" class="projects-section">
         <div class="section-head">
           <h2>Mina projekt</h2>
-          <label class="btn btn-secondary btn-small">
-            Importera projektfil
-            <input id="import-file" type="file" accept=".json,application/json" hidden>
-          </label>
+          <button id="btn-import" class="btn btn-secondary btn-small">Importera projektfil</button>
+          <input id="import-file" type="file" accept=".json,application/json" hidden>
         </div>
-        <p id="no-projects" class="empty-note" hidden>Inga sparade projekt ännu — välj en template nedan, eller importera en projektfil från en annan dator.</p>
+        <p class="storage-note">Projekten sparas i den här webbläsaren. Spara som fil för en säkerhetskopia eller för att fortsätta på en annan enhet.</p>
+        <p id="no-projects" class="empty-note" hidden>Inga sparade projekt ännu — välj en mall nedan, eller importera en projektfil.</p>
         <div id="my-projects" class="project-list"></div>
       </section>
 
@@ -46,14 +45,18 @@
   <div id="view-editor" class="view" hidden>
     <div class="editor-topbar">
       <button id="btn-back" class="btn btn-ghost" title="Tillbaka till galleriet">&larr; Galleri</button>
-      <input id="project-name" class="project-name-input" type="text" value="Min hemsida" spellcheck="false">
+      <input id="project-name" class="project-name-input" aria-label="Projektnamn" type="text" value="Min hemsida" spellcheck="false">
       <div class="topbar-spacer"></div>
-      <div class="device-toggle">
-        <button id="btn-desktop" class="btn btn-ghost active" title="Förhandsvisa som dator">🖥️ Dator</button>
-        <button id="btn-mobile" class="btn btn-ghost" title="Förhandsvisa som mobil">📱 Mobil</button>
-      </div>
-      <button id="btn-save" class="btn btn-secondary">Spara</button>
-      <button id="btn-export" class="btn btn-primary">Exportera sajt (.zip)</button>
+      <button id="btn-save" class="btn btn-primary" title="Spara på den här enheten">Spara</button>
+      <button id="btn-preview" class="btn btn-secondary" aria-pressed="false">Förhandsvisa</button>
+      <details class="editor-more">
+        <summary class="btn btn-secondary">Mer</summary>
+        <div class="more-actions">
+          <button id="btn-project-file" class="btn btn-secondary">Spara som projektfil</button>
+          <button id="btn-export" class="btn btn-primary">Exportera sajt (.zip)</button>
+        </div>
+      </details>
+      <span id="save-status" class="save-status" role="status">Inte sparat ännu</span>
     </div>
 
     <div id="page-tabs" class="page-tabs" hidden></div>
@@ -67,12 +70,41 @@
         <div id="slot-fields"></div>
       </aside>
       <div class="editor-preview" id="preview-area">
-        <iframe id="preview-frame" title="Förhandsvisning"></iframe>
+        <div class="preview-toolbar">
+          <div class="device-toggle" aria-label="Förhandsvisningens storlek">
+            <button id="btn-desktop" class="btn btn-ghost" aria-pressed="false">Dator</button>
+            <button id="btn-mobile" class="btn btn-ghost" aria-pressed="false">Mobil</button>
+          </div>
+          <button id="btn-badges" class="btn btn-ghost" aria-pressed="true">Dölj nummer</button>
+        </div>
+        <div id="preview-viewport" class="preview-viewport">
+          <div id="preview-stage"><iframe id="preview-frame" title="Förhandsvisning"></iframe></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <div id="toast" class="toast" hidden></div>
+  <dialog id="leave-dialog" aria-labelledby="leave-title">
+    <h2 id="leave-title">Spara dina ändringar?</h2>
+    <p>Du har osparade ändringar. Spara dem på den här enheten innan du går till galleriet.</p>
+    <p id="leave-error" class="dialog-error" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button id="leave-cancel" class="btn btn-secondary" autofocus>Fortsätt redigera</button>
+      <button id="leave-discard" class="btn btn-ghost">Lämna utan att spara</button>
+      <button id="leave-save" class="btn btn-primary">Spara och gå till galleriet</button>
+    </div>
+  </dialog>
+  <dialog id="export-dialog" aria-labelledby="export-title">
+    <h2 id="export-title">Kontrollera din hemsida</h2>
+    <p>Zip-filen innehåller hemsidan. Spara också en projektfil om du vill fortsätta redigera på en annan enhet.</p>
+    <p id="export-summary"></p>
+    <ul id="export-review"></ul>
+    <div class="dialog-actions">
+      <button id="export-cancel" class="btn btn-secondary" autofocus>Fortsätt redigera</button>
+      <button id="confirm-export" class="btn btn-primary">Ladda ner sajt (.zip)</button>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
 
   <script>
     // Fånga webbläsarens installationserbjudande så appen kan visa en egen

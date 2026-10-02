@@ -32,7 +32,7 @@ ${window.fontCss('lora', 'inter')}
     return `
 <nav>
   <div class="wrap">
-    <div class="brand" data-slot="text" data-label="Caféets namn i menyraden">Café Linnéa</div>
+    <div class="brand" data-slot="text" data-label="Caféets namn i menyraden" data-shared="business-name">Café Linnéa</div>
     <div class="links">
       <a href="index.html" class="${active === 'hem' ? 'here' : ''}">Hem</a>
       <a href="meny.html" class="${active === 'meny' ? 'here' : ''}">Meny</a>

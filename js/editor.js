@@ -8,6 +8,8 @@ window.Editor = (function () {
 
   let current = null;   // { project, page, slots: [{el, type, label, num}] }
   let rafPending = false;
+  let previewScale = 1;
+  let badgesVisible = true;
 
   // Normaliserar en template till en lista av sidor (bakåtkompatibel med t.html)
   function pagesOf(template) {
@@ -44,6 +46,7 @@ window.Editor = (function () {
       img.onerror = () => cb(null);
       img.src = reader.result;
     };
+    reader.onerror = () => cb(null);
     reader.readAsDataURL(file);
   }
 
@@ -56,18 +59,20 @@ window.Editor = (function () {
       #__slotBadges { position: absolute; top: 0; left: 0; width: 0; height: 0; z-index: 99999; }
       .__badge {
         position: absolute;
-        width: 26px; height: 26px;
-        background: #4f46e5; color: #fff;
-        border: 2px solid #fff;
-        border-radius: 50%;
-        font: 700 12px/22px system-ui, sans-serif;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,.35);
+        width: var(--badge-hit, 44px); height: var(--badge-hit, 44px);
+        padding: 0; border: 0; background: transparent;
+        display: grid; place-items: center;
         cursor: pointer;
         user-select: none;
-        transition: transform .1s;
       }
-      .__badge:hover { transform: scale(1.2); }
+      .__badge span {
+        width: var(--badge-size, 26px); height: var(--badge-size, 26px);
+        background: #4f46e5; color: #fff; border: 2px solid #fff; border-radius: 50%;
+        font: 700 var(--badge-font, 12px)/1 system-ui, sans-serif;
+        display: grid; place-items: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,.35);
+      }
+      .__badge:focus-visible { outline: 3px solid #4f46e5; outline-offset: 2px; }
       [data-slot-active] { outline: 3px solid #4f46e5 !important; outline-offset: 2px; }
     `;
     doc.head.appendChild(style);
@@ -84,11 +89,17 @@ window.Editor = (function () {
     const layer = doc && doc.getElementById('__slotBadges');
     if (!layer) return;
     const win = frame().contentWindow;
+    const size = 44 / previewScale;
+    layer.hidden = !badgesVisible;
+    layer.style.setProperty('--badge-hit', size + 'px');
+    layer.style.setProperty('--badge-size', 26 / previewScale + 'px');
+    layer.style.setProperty('--badge-font', 12 / previewScale + 'px');
+    const maxLeft = Math.max(0, doc.documentElement.clientWidth - size);
     current.slots.forEach(s => {
       const r = s.el.getBoundingClientRect();
-      s.badge.style.left = (r.left + win.scrollX - 10) + 'px';
-      s.badge.style.top = (r.top + win.scrollY - 10) + 'px';
-      s.badge.style.display = (r.width || r.height) ? 'block' : 'none';
+      s.badge.style.left = Math.max(0, Math.min(maxLeft, r.left + win.scrollX - size)) + 'px';
+      s.badge.style.top = Math.max(0, r.top + win.scrollY - size / 2) + 'px';
+      s.badge.style.display = (r.width || r.height) ? 'grid' : 'none';
     });
   }
 
@@ -117,7 +128,7 @@ window.Editor = (function () {
 
   // ---------- Sidopanelens fält ----------
 
-  function buildField(slot, values) {
+  function buildField(slot, values, project, opts) {
     const wrap = document.createElement('div');
     wrap.className = 'slot-field';
     wrap.innerHTML = `
@@ -127,6 +138,7 @@ window.Editor = (function () {
         <span class="slot-type">${slot.type === 'image' ? 'Bild' : 'Text'}</span>
       </div>`;
     wrap.querySelector('.slot-label').textContent = slot.label;
+    wrap.querySelector('.slot-label').id = 'slot-label-' + slot.num;
 
     if (slot.type === 'image') {
       const row = document.createElement('div');
@@ -134,24 +146,33 @@ window.Editor = (function () {
       const thumb = document.createElement('img');
       thumb.className = 'img-preview';
       thumb.src = slot.el.getAttribute('src');
-      const btn = document.createElement('label');
+      const btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = 'img-btn';
       btn.textContent = 'Byt bild…';
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
-      btn.appendChild(input);
-      row.append(thumb, btn);
+      input.setAttribute('aria-label', slot.label);
+      btn.addEventListener('click', () => input.click());
+      row.append(thumb, btn, input);
       wrap.appendChild(row);
 
       input.addEventListener('change', () => {
         const file = input.files && input.files[0];
         if (!file) return;
+        input.value = '';
+        btn.disabled = true;
+        if (opts.onBusy) opts.onBusy(true);
         downscaleImage(file, 1600, dataUrl => {
+          btn.disabled = false;
+          if (opts.onBusy) opts.onBusy(false);
+          if (!current || current.project !== project) return;
           if (!dataUrl) { window.showToast('Kunde inte läsa bilden.'); return; }
           slot.el.setAttribute('src', dataUrl);
           thumb.src = dataUrl;
           values[slot.num] = dataUrl;
+          if (opts.onChange) opts.onChange();
           slot.el.addEventListener('load', schedulePosition, { once: true });
           schedulePosition();
         });
@@ -162,13 +183,33 @@ window.Editor = (function () {
       if (!multiline) input.type = 'text';
       else input.rows = 3;
       input.value = slot.el.textContent;
+      input.setAttribute('aria-labelledby', 'slot-label-' + slot.num);
       wrap.appendChild(input);
 
       input.addEventListener('input', () => {
         slot.el.textContent = input.value;
         values[slot.num] = input.value;
+        if (opts.onChange) opts.onChange();
         schedulePosition();
       });
+      const sharedKey = slot.el.getAttribute('data-shared');
+      if (sharedKey) {
+        const sync = document.createElement('button');
+        sync.className = 'btn btn-secondary shared-field';
+        sync.textContent = 'Använd på alla sidor';
+        sync.addEventListener('click', () => {
+          const template = window.TEMPLATES.find(t => t.id === project.templateId);
+          pagesOf(template).forEach(page => {
+            const doc = new DOMParser().parseFromString(page.html, 'text/html');
+            doc.querySelectorAll('[data-slot]').forEach((el, i) => {
+              if (el.getAttribute('data-shared') === sharedKey) pageValues(project, page.file)[i + 1] = input.value;
+            });
+          });
+          if (opts.onChange) opts.onChange();
+          window.showToast('Namnet används nu på alla sidor.');
+        });
+        wrap.appendChild(sync);
+      }
     }
 
     wrap.addEventListener('click', () => highlightSlot(slot, true));
@@ -178,10 +219,11 @@ window.Editor = (function () {
 
   // ---------- Öppna en sida i ett projekt ----------
 
-  // opts: { pageFile, onSwitchPage(file) }
+  // opts: sidbyte, ändringsstatus, bildbearbetning och fokus tillbaka till fälten.
   function open(project, opts) {
     opts = opts || {};
     current = null;
+    fieldsEl().replaceChildren();
     const template = window.TEMPLATES.find(t => t.id === project.templateId);
     if (!template) { window.showToast('Templaten hittades inte.'); return; }
 
@@ -190,8 +232,7 @@ window.Editor = (function () {
     const values = pageValues(project, page.file);
 
     const f = frame();
-    f.addEventListener('load', function onload() {
-      f.removeEventListener('load', onload);
+    f.onload = function () {
       const doc = f.contentDocument;
       const win = f.contentWindow;
 
@@ -229,14 +270,21 @@ window.Editor = (function () {
       // Badges
       const layer = injectEditorChrome(doc);
       slots.forEach(s => {
-        const b = doc.createElement('div');
+        const b = doc.createElement('button');
+        b.type = 'button';
         b.className = '__badge';
-        b.textContent = s.num;
+        const number = doc.createElement('span');
+        number.textContent = s.num;
+        b.appendChild(number);
+        b.setAttribute('aria-label', 'Redigera ruta ' + s.num + ': ' + s.label);
         b.title = s.label;
         b.addEventListener('click', e => {
           e.stopPropagation();
+          if (opts.onSelect) opts.onSelect();
           highlightSlot(s, false);
-          s.field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          s.field.scrollIntoView({ block: 'center' });
+          const control = s.field.querySelector('input[type="text"], textarea, button');
+          if (control) control.focus({ preventScroll: true });
         });
         layer.appendChild(b);
         s.badge = b;
@@ -245,9 +293,10 @@ window.Editor = (function () {
       // Panelfält
       const fields = fieldsEl();
       fields.innerHTML = '';
-      slots.forEach(s => fields.appendChild(buildField(s, values)));
+      slots.forEach(s => fields.appendChild(buildField(s, values, project, opts)));
 
       current = { project, page, slots };
+      if (opts.onReady) opts.onReady();
 
       win.addEventListener('scroll', schedulePosition, { passive: true });
       win.addEventListener('resize', schedulePosition);
@@ -255,10 +304,22 @@ window.Editor = (function () {
         img.addEventListener('load', schedulePosition));
       positionBadges();
       setTimeout(positionBadges, 300); // efter att bilder/typsnitt satt sig
-    });
+    };
 
     f.srcdoc = page.html;
   }
 
-  return { open, pagesOf, repositionBadges: schedulePosition };
+  function close() {
+    current = null;
+    frame().onload = null;
+  }
+
+  function setBadgesVisible(visible) {
+    badgesVisible = visible;
+    positionBadges();
+  }
+
+  function setPreviewScale(scale) { previewScale = scale; schedulePosition(); }
+
+  return { open, close, pagesOf, setBadgesVisible, setPreviewScale, repositionBadges: schedulePosition };
 })();

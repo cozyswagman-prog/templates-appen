@@ -36,6 +36,19 @@ npx -y serve -l 3456 .
 
 Öppna sedan http://localhost:3456. (I Claude Code startas den via `.claude/launch.json`.)
 
+## Redigera, spara och förhandsvisa
+
+- På mobil växlar **Förhandsvisa / Redigera** mellan hela sidvyn och fullbreda fält.
+  På större skärmar visas fält och förhandsvisning bredvid varandra; knappen ger större förhandsvisning.
+- **Dator** renderar alltid sidan i 1200 CSS-pixlar och **Mobil** i 390; bilden skalas
+  till tillgänglig yta. **Visa/dölj nummer** styr de klickbara redigeringsmarkörerna.
+- **Spara** sparar i aktuell webbläsare. Sparstatus och en dialog skyddar osparade
+  ändringar när användaren går till galleriet; en webbläsarvarning begärs även vid omladdning.
+- **Mer → Spara som projektfil** tar med de senaste ändringarna direkt från editorn.
+  **Mer → Exportera sajt (.zip)** visar först antal oförändrade textfält och exempelbilder per sida.
+- Caféets namn i menyraden kan kopieras till alla sidor med ett uttryckligt knapptryck.
+  Detta använder `data-shared` och ändrar inga slotnummer eller projektfilformat.
+
 ## Struktur
 
 ```

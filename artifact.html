@@ -1,80 +1,112 @@
 <title>Templates</title>
 <link rel="stylesheet" href="css/app.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- Samma appstruktur som index.html, utan dokumentskal och PWA-registrering. -->
 
-<!-- Publiceringsversionen av appen (claude.ai). Samma innehåll som index.html,
-     men utan dokumentskal — det läggs på vid publicering. Håll i synk! -->
+  <!-- Galleri-vy -->
+  <div id="view-gallery" class="view">
+    <header class="app-header">
+      <div class="logo">T<span>emplates</span></div>
+      <p class="tagline">Välj en färdig hemsida · byt bilder och texter · ladda ner din sajt</p>
+    </header>
 
-<div id="view-gallery" class="view">
-  <header class="app-header">
-    <div class="logo">T<span>emplates</span></div>
-    <p class="tagline">Välj en färdig hemsida · byt bilder och texter · ladda ner din sajt</p>
-  </header>
-
-  <main class="gallery-main">
-    <section id="my-projects-section" class="projects-section">
-      <div class="section-head">
-        <h2>Mina projekt</h2>
-        <label class="btn btn-secondary btn-small">
-          Importera projektfil
+    <main class="gallery-main">
+      <section id="my-projects-section" class="projects-section">
+        <div class="section-head">
+          <h2>Mina projekt</h2>
+          <button id="btn-import" class="btn btn-secondary btn-small">Importera projektfil</button>
           <input id="import-file" type="file" accept=".json,application/json" hidden>
-        </label>
-      </div>
-      <p id="no-projects" class="empty-note" hidden>Inga sparade projekt ännu — välj en template nedan, eller importera en projektfil från en annan dator.</p>
-      <div id="my-projects" class="project-list"></div>
-    </section>
+        </div>
+        <p class="storage-note">Projekten sparas i den här webbläsaren. Spara som fil för en säkerhetskopia eller för att fortsätta på en annan enhet.</p>
+        <p id="no-projects" class="empty-note" hidden>Inga sparade projekt ännu — välj en mall nedan, eller importera en projektfil.</p>
+        <div id="my-projects" class="project-list"></div>
+      </section>
 
-    <section>
-      <h2>Templates</h2>
-      <div id="template-gallery" class="template-grid"></div>
-    </section>
-  </main>
-</div>
-
-<div id="view-editor" class="view" hidden>
-  <div class="editor-topbar">
-    <button id="btn-back" class="btn btn-ghost" title="Tillbaka till galleriet">&larr; Galleri</button>
-    <input id="project-name" class="project-name-input" type="text" value="Min hemsida" spellcheck="false">
-    <div class="topbar-spacer"></div>
-    <div class="device-toggle">
-      <button id="btn-desktop" class="btn btn-ghost active" title="Förhandsvisa som dator">🖥️ Dator</button>
-      <button id="btn-mobile" class="btn btn-ghost" title="Förhandsvisa som mobil">📱 Mobil</button>
-    </div>
-    <button id="btn-save" class="btn btn-secondary">Spara</button>
-    <button id="btn-export" class="btn btn-primary">Exportera sajt (.zip)</button>
+      <section>
+        <h2>Templates</h2>
+        <div id="template-gallery" class="template-grid"></div>
+      </section>
+    </main>
   </div>
 
-  <div id="page-tabs" class="page-tabs" hidden></div>
+  <!-- Editor-vy -->
+  <div id="view-editor" class="view" hidden>
+    <div class="editor-topbar">
+      <button id="btn-back" class="btn btn-ghost" title="Tillbaka till galleriet">&larr; Galleri</button>
+      <input id="project-name" class="project-name-input" aria-label="Projektnamn" type="text" value="Min hemsida" spellcheck="false">
+      <div class="topbar-spacer"></div>
+      <button id="btn-save" class="btn btn-primary" title="Spara på den här enheten">Spara</button>
+      <button id="btn-preview" class="btn btn-secondary" aria-pressed="false">Förhandsvisa</button>
+      <details class="editor-more">
+        <summary class="btn btn-secondary">Mer</summary>
+        <div class="more-actions">
+          <button id="btn-project-file" class="btn btn-secondary">Spara som projektfil</button>
+          <button id="btn-export" class="btn btn-primary">Exportera sajt (.zip)</button>
+        </div>
+      </details>
+      <span id="save-status" class="save-status" role="status">Inte sparat ännu</span>
+    </div>
 
-  <div class="editor-body">
-    <aside class="editor-panel">
-      <div class="panel-intro">
-        <strong>Dina rutor</strong>
-        <p>Varje nummer motsvarar en ruta på sidan. Ändra text eller byt bild — förhandsvisningen uppdateras direkt.</p>
+    <div id="page-tabs" class="page-tabs" hidden></div>
+
+    <div class="editor-body">
+      <aside class="editor-panel">
+        <div class="panel-intro">
+          <strong>Dina rutor</strong>
+          <p>Varje nummer motsvarar en ruta på sidan. Ändra text eller byt bild — förhandsvisningen uppdateras direkt.</p>
+        </div>
+        <div id="slot-fields"></div>
+      </aside>
+      <div class="editor-preview" id="preview-area">
+        <div class="preview-toolbar">
+          <div class="device-toggle" aria-label="Förhandsvisningens storlek">
+            <button id="btn-desktop" class="btn btn-ghost" aria-pressed="false">Dator</button>
+            <button id="btn-mobile" class="btn btn-ghost" aria-pressed="false">Mobil</button>
+          </div>
+          <button id="btn-badges" class="btn btn-ghost" aria-pressed="true">Dölj nummer</button>
+        </div>
+        <div id="preview-viewport" class="preview-viewport">
+          <div id="preview-stage"><iframe id="preview-frame" title="Förhandsvisning"></iframe></div>
+        </div>
       </div>
-      <div id="slot-fields"></div>
-    </aside>
-    <div class="editor-preview" id="preview-area">
-      <iframe id="preview-frame" title="Förhandsvisning"></iframe>
     </div>
   </div>
-</div>
 
-<div id="toast" class="toast" hidden></div>
+  <dialog id="leave-dialog" aria-labelledby="leave-title">
+    <h2 id="leave-title">Spara dina ändringar?</h2>
+    <p>Du har osparade ändringar. Spara dem på den här enheten innan du går till galleriet.</p>
+    <p id="leave-error" class="dialog-error" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button id="leave-cancel" class="btn btn-secondary" autofocus>Fortsätt redigera</button>
+      <button id="leave-discard" class="btn btn-ghost">Lämna utan att spara</button>
+      <button id="leave-save" class="btn btn-primary">Spara och gå till galleriet</button>
+    </div>
+  </dialog>
+  <dialog id="export-dialog" aria-labelledby="export-title">
+    <h2 id="export-title">Kontrollera din hemsida</h2>
+    <p>Zip-filen innehåller hemsidan. Spara också en projektfil om du vill fortsätta redigera på en annan enhet.</p>
+    <p id="export-summary"></p>
+    <ul id="export-review"></ul>
+    <div class="dialog-actions">
+      <button id="export-cancel" class="btn btn-secondary" autofocus>Fortsätt redigera</button>
+      <button id="confirm-export" class="btn btn-primary">Ladda ner sajt (.zip)</button>
+    </div>
+  </dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
 
 <script src="js/version.js"></script>
-<script src="templates/index.js"></script>
-<script src="templates/restaurang.js"></script>
-<script src="templates/salong.js"></script>
-<script src="templates/byggfirma.js"></script>
-<script src="templates/butik.js"></script>
-<script src="templates/portfolio.js"></script>
-<script src="templates/cafe.js"></script>
-<script src="templates/gym.js"></script>
-<script src="templates/konsult.js"></script>
-<script src="templates/hemservice.js"></script>
-<script src="js/save.js"></script>
-<script src="js/storage.js"></script>
-<script src="js/export.js"></script>
-<script src="js/editor.js"></script>
-<script src="js/app.js"></script>
+  <script src="templates/index.js"></script>
+  <script src="templates/restaurang.js"></script>
+  <script src="templates/salong.js"></script>
+  <script src="templates/byggfirma.js"></script>
+  <script src="templates/butik.js"></script>
+  <script src="templates/portfolio.js"></script>
+  <script src="templates/cafe.js"></script>
+  <script src="templates/gym.js"></script>
+  <script src="templates/konsult.js"></script>
+  <script src="templates/hemservice.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/app.js"></script>
