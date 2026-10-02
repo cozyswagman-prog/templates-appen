@@ -217,6 +217,7 @@
           document.getElementById(id).disabled = busy;
         });
         document.querySelectorAll('.img-btn').forEach(button => { button.disabled = busy; });
+        document.querySelectorAll('#site-settings button, #site-settings input[type=file]').forEach(control => { control.disabled = busy; });
         if (busy) saveStatus.textContent = 'Bearbetar bilden…';
         else saveStatus.textContent = dirty ? 'Osparade ändringar'
           : window.Storage.get(currentProject.id) ? 'Sparat på den här enheten' : 'Inte sparat ännu';
@@ -233,6 +234,7 @@
     viewGallery.hidden = true;
     viewEditor.hidden = false;
     nameInput.value = project.name;
+    document.getElementById('settings-disclosure').open = false;
     setPreviewOnly(false);
     setDevice(matchMedia('(max-width: 900px)').matches ? 'mobile' : 'desktop');
     const template = window.TEMPLATES.find(t => t.id === project.templateId);
@@ -323,6 +325,9 @@
       review.appendChild(item);
     });
     document.getElementById('export-summary').textContent = 'Kontrollera att namn, priser, kontaktuppgifter och bilder stämmer. Oförändrade fält kan vara rätt för dig. Du laddar ner hemsidan som en fil; den publiceras inte på nätet.';
+    window.SiteKit.review(currentProject, window.Editor.pagesOf(template)).forEach(warning => {
+      const item = document.createElement('li'); item.textContent = warning; review.append(item);
+    });
     document.querySelector('.editor-more').open = false;
     exportDialog.showModal();
   });

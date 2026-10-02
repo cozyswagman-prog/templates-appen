@@ -47,6 +47,8 @@ window.Exporter = (function () {
       const doc = new DOMParser().parseFromString(page.html, 'text/html');
       const values = project.values[page.file] || {};
 
+      window.SiteKit.apply(doc, project, page.file);
+
       // Applicera sparade värden i samma nummerordning som editorn
       doc.querySelectorAll('[data-slot]').forEach((el, i) => {
         const v = values[i + 1];
@@ -60,6 +62,9 @@ window.Exporter = (function () {
         el.removeAttribute('data-slot-active');
         el.removeAttribute('data-shared');
       });
+
+      // Explicit button settings win over their original numbered text field.
+      window.SiteKit.apply(doc, project, page.file);
 
       // Sidtitel: projektnamn (+ sidans namn för undersidor)
       const titleEl = doc.querySelector('title');
@@ -86,6 +91,7 @@ window.Exporter = (function () {
         img.setAttribute('src', 'images/' + filename);
       });
 
+      window.SiteKit.activate(doc, false);
       const html = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
       for (const m of html.matchAll(/fonts\/([a-z0-9-]+\.woff2)/g)) fontFiles.add(m[1]);
       zip.file(page.file, html);
@@ -117,6 +123,12 @@ window.Exporter = (function () {
       'När innehållet är kontrollerat: ladda upp alla uppackade filer och mappar\n' +
       'till webbplatsens mapp hos ditt webbhotell. Behåll mapparnas struktur.\n' +
       'Öppna därefter webbplatsens adress och kontrollera att den fungerar.\n\n' +
+      'BOKNING, BETALNING OCH FORMULÄR\n' +
+      'Filter, bildväxling och prisindikator fungerar direkt i filerna.\n' +
+      'Externa boknings- och köplänkar kräver din egen anslutna tjänst och internet.\n' +
+      'Formulär kräver en konfigurerad Formspree-mottagare. Prova mottagningen\n' +
+      'på den publicerade adressen innan sajten börjar användas av kunder.\n' +
+      'Ej anslutna funktioner tar inte emot bokningar, betalningar eller förfrågningar.\n\n' +
       'Skapad med Templates.');
 
     const blob = await zip.generateAsync({ type: 'blob' });

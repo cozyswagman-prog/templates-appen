@@ -127,6 +127,22 @@ html, body {
   font-size: 18px;
   margin: 28px 0 16px;
 }
+
+/* Collapsed settings keep the original numbered editor usable on small screens. */
+#site-settings { padding: 0 16px 20px; }
+.settings-disclosure { margin: 0 16px 16px; border: 1px solid var(--border); border-radius: 9px; }
+.settings-disclosure > summary { padding: 14px 12px; min-height: 48px; font-size: 14px; font-weight: 700; cursor: pointer; color: var(--text); }
+.site-group { border-bottom: 1px solid var(--border); padding: 4px 0; }
+.site-group > summary { font-weight: 700; font-size: 14px; cursor: pointer; min-height: 48px; padding: 14px 2px; overflow-wrap: anywhere; }
+.site-group .site-group { margin: 0 4px 8px; }
+.settings-note { font-size: 13px; line-height: 1.6; color: var(--muted); margin: 10px 0 16px; }
+.settings-field { display: grid; gap: 7px; margin: 14px 0; font-size: 13px; font-weight: 600; }
+.settings-field input, .settings-field textarea, .settings-field select { width: 100%; min-width: 0; min-height: 46px; padding: 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font: 400 16px/1.5 Inter, sans-serif; }
+.settings-field [aria-invalid=true] { border-color: var(--danger); outline-color: var(--danger); }
+.settings-check { display: flex; gap: 12px; align-items: center; min-height: 46px; font-size: 14px; line-height: 1.5; cursor: pointer; }
+.settings-check input { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--accent); }
+.site-group .btn { margin: 8px 0; white-space: normal; width: 100%; }
+#export-review { max-height: 42vh; overflow-y: auto; padding-right: 12px; }
 .section-head h2 { margin: 0; }
 .projects-section { padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
 .projects-section .empty-note { margin-top: 12px; line-height: 1.5; }

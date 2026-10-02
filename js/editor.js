@@ -13,7 +13,9 @@ window.Editor = (function () {
 
   // Normaliserar en template till en lista av sidor (bakåtkompatibel med t.html)
   function pagesOf(template) {
-    return template.pages || [{ file: 'index.html', title: 'Hem', html: template.html }];
+    if (!template.enrichedPages) template.enrichedPages = (template.pages || [{ file: 'index.html', title: 'Hem', html: template.html }])
+      .map(page => window.SiteKit.decorate(template, page));
+    return template.enrichedPages;
   }
 
   // Värden för en viss sida i projektet
@@ -189,6 +191,9 @@ window.Editor = (function () {
       input.addEventListener('input', () => {
         slot.el.textContent = input.value;
         values[slot.num] = input.value;
+        const linkKey = slot.el.dataset.linkKey && current?.page.file + ':' + slot.el.dataset.linkKey;
+        const linked = linkKey && window.SiteKit.settings(project).links[linkKey];
+        if (linked) linked.text = input.value;
         if (opts.onChange) opts.onChange();
         schedulePosition();
       });
@@ -218,6 +223,126 @@ window.Editor = (function () {
   }
 
   // ---------- Öppna en sida i ett projekt ----------
+
+  // Named settings live beside the numbered fields, preserving old project values.
+  function buildSiteSettings(doc, project, page, opts) {
+    const root = document.getElementById('site-settings');
+    root.replaceChildren();
+    const kit = window.SiteKit, site = kit.settings(project), saved = kit.pageSettings(project, page.file);
+    const changed = () => { kit.apply(doc, project, page.file); opts.onChange?.(); schedulePosition(); };
+    let sequence = 0;
+    const group = (title, parent = root) => {
+      const box = document.createElement('details'); box.className = 'site-group';
+      const summary = document.createElement('summary'); summary.textContent = title;
+      box.append(summary); parent.append(box); return box;
+    };
+    const note = (parent, value) => { const p = document.createElement('p'); p.className='settings-note';p.textContent=value;parent.append(p);return p; };
+    const field = (parent, label, value, update, type = 'text', options) => {
+      const wrap = document.createElement('label'); wrap.className='settings-field';
+      const title = document.createElement('span'); title.textContent=label;wrap.append(title);
+      const input=document.createElement(type==='textarea'?'textarea':type==='select'?'select':'input');
+      input.id='site-field-'+(++sequence);input.setAttribute('aria-label',label);
+      if(type==='select')options.forEach(([v,t])=>{const option=document.createElement('option');option.value=v;option.textContent=t;input.append(option);});
+      else if(type==='textarea')input.rows=3;else input.type=type;
+      input.value=typeof value==='string'||typeof value==='number'?value:'';
+      if(type==='number'){input.min='0';input.step='0.01';}
+      input.addEventListener(type==='select'?'change':'input',()=>{update(input.value,input);changed();});
+      wrap.append(input);parent.append(wrap);return input;
+    };
+    const business=group('Företag & funktioner');
+    note(business,'Gemensamma uppgifter används i de nya kontaktavsnitten på alla sidor. Knappen nedan uppdaterar även mallens ursprungliga namn och kontakttexter.');
+    [['name','Företagsnamn','text'],['phone','Telefon','tel'],['email','E-post','email'],['address','Besöksadress','textarea'],['booking','Bokningslänk (https://)','url'],['formEndpoint','Formuläradress från Formspree','url'],['privacy','Länk till integritetsinformation','url']].forEach(([key,label,type])=>{
+      const input=field(business,label,site.business[key],(value,el)=>{
+        site.business[key]=value;
+        const invalid=value&&(key==='formEndpoint'?!kit.endpoint(value):['booking','privacy'].includes(key)?!kit.safeLink(value):key==='phone'?!kit.safeLink('tel:'+value):false);
+        el.setCustomValidity(invalid?'Kontrollera adressen. Använd en fullständig https-adress eller ett giltigt telefonnummer.':'');
+        el.setAttribute('aria-invalid',String(!!invalid));
+      },type);
+      if(key==='formEndpoint')input.placeholder='https://formspree.io/f/dittformulär';
+    });
+    note(business,'Bokning och betalning öppnar din egen tjänst. För formulär anger du adressen från ett Formspree-konto; det krävs internet och en mottagare. Förhandsvisningen skickar aldrig något.');
+    const sync=document.createElement('button');sync.className='btn btn-secondary';sync.textContent='Använd uppgifterna på alla sidor';
+    sync.addEventListener('click',()=>{
+      const template=window.TEMPLATES.find(t=>t.id===project.templateId),b=site.business;
+      pagesOf(template).forEach(p=>{
+        const source=new DOMParser().parseFromString(p.html,'text/html'), values=pageValues(project,p.file);
+        const all=[...source.querySelectorAll('[data-slot]')];
+        const isName=label=>/^(Restaurangens namn|Namn i menyraden|Företagsnamn i toppen|Butikens namn i menyn|Ditt namn|Caféets namn.*|Gymmets namn i toppen|Byråns namn i toppen)$/.test(label);
+        const oldNames=all.flatMap((el,i)=>isName(el.dataset.label||'')?[el.textContent,values[i+1]].filter(Boolean):[]);
+        source.querySelectorAll('[data-slot="text"]').forEach(el=>{
+          const num=all.indexOf(el)+1,label=el.dataset.label||'';
+          if(b.name&&isName(label))values[num]=b.name;
+          else if(b.phone&&label==='Telefonnummer i toppen')values[num]=b.phone;
+          else if(b.name&&label.startsWith('Sidfotstext')){
+            let footer=values[num]??el.textContent;
+            for(const name of [...new Set(oldNames)].sort((a,b)=>b.length-a.length)){
+              const at=footer.toLocaleLowerCase('sv').indexOf(String(name).toLocaleLowerCase('sv'));
+              if(at>=0){footer=footer.slice(0,at)+b.name+footer.slice(at+name.length);break;}
+            }
+            values[num]=footer;
+          }
+          else if(/^(Kontaktuppgifter|Adress och kontakt)$/.test(label)&&(b.phone||b.email||b.address)){
+            const original=values[num]??el.textContent;
+            const hours=original.split('\n').filter(line=>/\b\d{1,2}[.:]\d{2}.*[–-].*\d/.test(line));
+            values[num]=[b.address,b.phone,b.email,...hours].filter(Boolean).join('\n');
+          }
+        });
+      });
+      opts.onChange?.();open(project,opts);window.showToast('Namn och kontakttexter uppdaterade. Kontrollera även sidfot och öppettider.');
+    });business.append(sync);
+
+    const links=group('Knappar & länkar på sidan');
+    note(links,'Ändra både knapptext och destination. Välj ring, mejl, webbadress eller ett avsnitt på sidan. Tom destination stänger av knappen.');
+    doc.querySelectorAll('[data-action],[data-link-key]').forEach(el=>{
+      const key=el.dataset.action||page.file+':'+el.dataset.linkKey;
+      const box=group(el.dataset.caption||el.textContent.trim()||'Länk',links);
+      const get=()=>{if(!site.links[key]||typeof site.links[key]!=='object')site.links[key]={text:el.textContent,url:el.getAttribute('href')||''};return site.links[key];};
+      field(box,'Knapptext – '+box.firstChild.textContent,el.textContent,value=>{get().text=value;});
+      const existing=el.getAttribute('href')||'';
+      const classify=v=>v.startsWith('tel:')?'tel':v.startsWith('mailto:')?'email':v.startsWith('#')?'section':'url';
+      let kind=classify(existing);
+      let destination;
+      const saveDestination=()=>{
+        const raw=destination.value.trim(), url=raw?(kind==='tel'?'tel:':kind==='email'?'mailto:':kind==='section'?'#':'')+raw:'';
+        get().url=url;const bad=raw&&!kit.safeLink(url);destination.setCustomValidity(bad?'Ange en giltig destination. Webblänkar måste börja med https://.':'');destination.setAttribute('aria-invalid',String(!!bad));
+      };
+      field(box,'Typ av länk – '+box.firstChild.textContent,kind,value=>{kind=value;saveDestination();},'select',[['url','Webbadress'],['tel','Ring'],['email','Mejla'],['section','Avsnitt på sidan']]);
+      destination=field(box,'Destination – '+box.firstChild.textContent,existing.replace(/^(tel:|mailto:|#)/,''),saveDestination);
+      const reset=document.createElement('button');reset.className='btn btn-ghost';reset.textContent='Återgå till gemensam länk';reset.addEventListener('click',()=>{delete site.links[key];opts.onChange?.();open(project,opts);});box.append(reset);
+    });
+
+    const sections=group('Visa eller dölj avsnitt');
+    doc.querySelectorAll('[data-section]').forEach(el=>{
+      const label=document.createElement('label');label.className='settings-check';const input=document.createElement('input');input.type='checkbox';input.checked=!el.hidden;
+      input.addEventListener('change',()=>{saved.hidden[el.dataset.section]=!input.checked;changed();});label.append(input,document.createTextNode(el.dataset.caption));sections.append(label);
+    });
+    const content=group('Nya texter på denna sida');
+    note(content,'Dessa fält har fasta namn och påverkar inte dina tidigare numrerade rutor. Exempeltexterna behöver ersättas med företagets egna uppgifter.');
+    doc.querySelectorAll('[data-content]').forEach(el=>field(content,el.dataset.caption,el.textContent,value=>{saved.content[el.dataset.content]=value;},el.matches('p,blockquote')?'textarea':'text'));
+    const filterItems=[...doc.querySelectorAll('[data-filter-item]')];
+    if(filterItems.length){const filters=group('Kategorier i filtren');filterItems.forEach((el,i)=>{
+      const choices=[...doc.querySelectorAll('[data-filter]')].filter(b=>b.dataset.filter===el.dataset.filterItem&&b.dataset.value!=='all').map(b=>[b.dataset.value,b.textContent]);
+      const box=group((el.querySelector('h3,b')?.textContent||el.textContent).slice(0,60),filters);
+      choices.forEach(([key,title])=>{const label=document.createElement('label');label.className='settings-check';const input=document.createElement('input');input.type='checkbox';input.checked=el.dataset.categories.split(' ').includes(key);input.addEventListener('change',()=>{const selected=[...box.querySelectorAll('input:checked')].map(x=>x.value);saved.categories[el.dataset.filterItem+'-'+i]=selected.join(' ');changed();});input.value=key;label.append(input,document.createTextNode(title));box.append(label);});
+    });}
+    const images=group('Bilder, beskrivningar & beskärning');
+    doc.querySelectorAll('[data-image-key]').forEach(el=>{
+      const key=el.dataset.imageKey,box=group(el.dataset.caption||'Bild',images);
+      const get=()=>{if(!saved.images[key]||typeof saved.images[key]!=='object')saved.images[key]={};return saved.images[key];};
+      if(!el.hasAttribute('data-slot')){
+        const label=document.createElement('label');label.className='settings-field';label.textContent='Byt bild';
+        const input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/webp,image/gif';input.setAttribute('aria-label','Byt bild – '+el.dataset.caption);
+        input.addEventListener('change',()=>{const file=input.files[0];if(!file)return;opts.onBusy?.(true);input.disabled=true;downscaleImage(file,1600,data=>{opts.onBusy?.(false);input.disabled=false;if(!current||current.project!==project)return;if(data){get().src=data;changed();}else window.showToast('Bilden kunde inte läsas.');});});label.append(input);box.append(label);
+      }else note(box,'Byt själva bilden i dess numrerade ruta.');
+      field(box,'Bildbeskrivning – '+el.dataset.caption,el.alt,value=>{get().alt=value;});
+      field(box,'Bildens fokus – '+el.dataset.caption,saved.images[key]?.focus||'center',value=>{get().focus=value;},'select',[['center','Mitten'],['top','Övre delen'],['bottom','Nedre delen'],['left','Vänster'],['right','Höger']]);
+    });
+    if(project.templateId==='hemservice'){
+      const rates=group('Priser för prisindikatorn');note(rates,'Ange företagets egna priser per m² och tillfälle. Ange tydligt moms och eventuell avdragsgrund; inga avdrag beräknas automatiskt.');
+      [['home','Hemstäd – kr per m²'],['move','Flyttstäd – kr per m²'],['deep','Storstäd – kr per m²']].forEach(([key,label])=>field(rates,label,site.rates[key],value=>{site.rates[key]=value;},'number'));
+      field(rates,'Förklaring till priset',site.rates.basis,value=>{site.rates.basis=value;},'textarea');
+    }
+  }
 
   // opts: sidbyte, ändringsstatus, bildbearbetning och fokus tillbaka till fälten.
   function open(project, opts) {
@@ -254,6 +379,9 @@ window.Editor = (function () {
         if (s.type === 'image') s.el.setAttribute('src', v);
         else s.el.textContent = v;
       });
+
+      window.SiteKit.apply(doc, project, page.file);
+      window.SiteKit.activate(doc, true);
 
       // Länkar mellan sidor i templaten byter sida i editorn.
       // Övriga länkar (mailto, externa) stoppas i förhandsvisningen.
@@ -296,6 +424,7 @@ window.Editor = (function () {
       slots.forEach(s => fields.appendChild(buildField(s, values, project, opts)));
 
       current = { project, page, slots };
+      buildSiteSettings(doc, project, page, opts);
       if (opts.onReady) opts.onReady();
 
       win.addEventListener('scroll', schedulePosition, { passive: true });

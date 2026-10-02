@@ -60,7 +60,70 @@ npx -y serve -l 3456 .
 - Caféets namn i menyraden kan kopieras till alla sidor med ett uttryckligt knapptryck.
   Detta använder `data-shared` och ändrar inga slotnummer eller projektfilformat.
 
-## Struktur
+## Branschfunktioner och gemensamma inställningar
+
+Alla nio mallar har kompletterats med redigerbara, namngivna innehållsfält:
+
+| Mall | Tillägg |
+| --- | --- |
+| Restaurang | Lunchavsnitt, kökets berättelse, menyfilter och bokningslänk |
+| Frisör & Salong | Behandlingstider, bokningslänkar och före-/efterbilder |
+| Byggfirma & Hantverk | Projektbeskrivningar, före-/efterbilder och offert i tre steg |
+| Butik & Produkter | Kategorifilter, produktdetaljer/skötsel och separata köplänkar |
+| Portfolio | Utvalt huvudprojekt, kategorifilter, projektberättelser och förfrågan |
+| Café & Bageri | Veckans bakverk/berättelse på Hem, filter/kostinfo på Meny och besöksinfo/beställningsförfrågan på Kontakt |
+| Gym & Träning | Filter på dag/passtyp, tränarpresentationer, medlems-/passlänkar och provträningsförfrågan |
+| Konsult & Byrå | Tjänstevägvisare, fördjupningar, kundberättelse och samtalsbokning |
+| Hemservice & Städ | Innehåll per tjänst, prisindikator och offert med förifylld uppskattning |
+
+Varje sida har vanliga frågor och ett kontaktavsnitt. Kundomdömen är dolda som
+standard och ska fyllas med äkta uppgifter innan avsnittet aktiveras.
+
+Öppna **Företag, funktioner & nya avsnitt** ovanför de numrerade rutorna. Där finns:
+
+- **Företag & funktioner:** gemensamt namn, telefon, e-post, adress, bokningslänk,
+  formulärmottagare och integritetslänk. **Använd uppgifterna på alla sidor** uppdaterar
+  även ursprungliga namn-/kontaktfält och igenkännbara företagsnamn i sidfoten;
+  kontrollera återstående sidfotstext och öppettider efteråt.
+- **Knappar & länkar:** redigera text, destination och typ (webb, telefon, mejl, avsnitt).
+  Externa webblänkar måste använda HTTPS. Osäkra/ogiltiga destinationer aktiveras inte.
+- **Visa eller dölj avsnitt**, **Nya texter**, kategoritillhörighet och bildbeskrivningar/
+  bildfokus. Nya bilder laddas upp här; äldre bilder byts i sina numrerade rutor.
+- Hemservice har egna priser per m² och tillfälle. Prisindikatorn kräver både ett
+  positivt pris och en förklarande prisgrund; frekvens följer med som önskemål,
+  inga RUT-avdrag eller frekvensrabatter beräknas automatiskt.
+
+### Tjänster som måste anslutas av företaget
+
+Bokning, betalning och formulär är **inte anslutna i grundmallarna**. Ange företagets
+publika boknings-/köplänkar; mallarna hanterar inte lager, varukorg, tillgänglighet
+eller medlemsregister. Ange en Formspree-adress `https://formspree.io/f/FORM_ID`
+för formulär och testa mottagningen på publicerad adress. Inga API-hemligheter hör
+hemma i appen eller exporten.
+
+Förhandsvisningen skickar aldrig formulär. Exportens formulär validerar uppgifter,
+behåller dem vid misslyckad sändning och visar skickat först efter ett lyckat
+serversvar. Export utan konfigurerad mottagare har avstängd skicka-knapp och tydlig
+information. Internet behövs för externa tjänster, medan filter, bildväxling och
+prisindikator fungerar även offline.
+
+### Projektformat och export
+
+`project.site` innehåller frivilliga `business`, `links`, `rates` samt
+`pages[filnamn].{content,images,hidden,categories}`. Gamla `values` och slotnummer
+är oförändrade. Tilläggen använder fasta nycklar i `data-content`/`data-image-key`,
+så nya innehållsfält flyttar aldrig gamla sparade värden.
+
+`SiteKit` i `templates/index.js` kompletterar ursprungsmallarna via
+`Editor.pagesOf`, och samma `apply` används av editor och export. Den fristående
+interaktionskoden följer med inline i varje exportsida; inga nya bibliotek eller
+filer behöver laddas från nätet. Koden ligger i befintliga precachade filer.
+
+Exportkontrollen visar nu även saknade länkar, formulärmottagare och oförändrade
+nya fält. Den tidigare testförväntningen exakt tre listpunkter för caféet är därför
+avsiktligt ersatt med tre sidöversikter **plus** dessa kompletterande kontroller.
+
+## Filstruktur
 
 ```
 index.html          App-skalet (galleri + editor)
