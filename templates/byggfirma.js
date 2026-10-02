@@ -8,9 +8,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Byggfirma</title>
 <style>
+${window.fontCss('inter')}
   :root { --navy: #14233c; --yellow: #f5b50a; --grey: #f2f4f7; --ink: #1c2533; }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; color: var(--ink); background: #fff; line-height: 1.6; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--ink); background: #fff; line-height: 1.6; }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
   h1, h2, h3 { font-weight: 800; }
 

@@ -1,0 +1,16 @@
+Typsnitt i den har mappen
+=========================
+
+Alla typsnitt ar hamtade fran Google Fonts 2026-10-02 (latin-subset, woff2)
+och ar licensierade under SIL Open Font License 1.1 (OFL):
+
+- Inter (inter-400, inter-700) - upphovsman: Rasmus Andersson m.fl.
+- Playfair Display (playfair-400, playfair-700) - upphovsman: Claus Eggers Sorensen m.fl.
+- Outfit (outfit-400, outfit-700) - upphovsman: On Brand Investments Pty Ltd m.fl.
+- Lora (lora-400, lora-700) - upphovsman: Cyreal m.fl.
+
+OFL 1.1 i korthet: typsnitten far anvandas, inbaddas och levereras med en
+hemsida, aven kommersiellt. De far inte saljas separat som typsnitt.
+Fullstandig licenstext: https://openfontlicense.org
+
+Den har filen foljer med i exporterade sajter som anvander typsnitten.

@@ -8,9 +8,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Butik</title>
 <style>
+${window.fontCss('inter')}
   :root { --ink: #111114; --paper: #ffffff; --soft: #f5f5f4; --line: #e7e5e4; }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; color: var(--ink); background: var(--paper); line-height: 1.6; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--ink); background: var(--paper); line-height: 1.6; }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
   h1, h2 { font-weight: 700; letter-spacing: -.5px; }
 

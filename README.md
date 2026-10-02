@@ -21,11 +21,21 @@ index.html          App-skalet (galleri + editor)
 css/app.css         Appens utseende
 js/app.js           Vyer, hash-routing, sidflikar
 js/editor.js        Slot-numrering, badges, live-redigering, bilduppladdning
-js/storage.js       Projekt i localStorage ("Mina projekt")
-js/export.js        Zip-export (en html per sida + images/)
-templates/index.js  Template-register + SVG-platshållare (window.ph)
+js/storage.js       Projekt i localStorage + projektfiler + migrering
+js/export.js        Zip-export (en html per sida + images/ + fonts/)
+templates/index.js  Template-register, SVG-platshållare (ph) och typsnitt (fontCss)
 templates/*.js      En fil per template
+fonts/              Självhostade typsnitt (OFL-licens, se fonts/LICENS.txt)
 ```
+
+## Typsnitt
+
+Fyra typsnitt är nedladdade från Google Fonts (latin-subset, vikt 400 + 700, OFL-licens)
+och självhostas: **Inter**, **Playfair Display**, **Outfit** och **Lora**. En template
+använder dem genom att lägga `${window.fontCss('playfair', 'inter')}` först i sin
+`<style>` och sedan referera `font-family: 'Playfair Display', Georgia, serif`.
+Exporten upptäcker vilka typsnittsfiler sidorna refererar och packar med dem + licensen
+i zip:ens `fonts/`-mapp, så kundsajten är helt fristående (ingen Google-koppling).
 
 ## Så fungerar en template
 

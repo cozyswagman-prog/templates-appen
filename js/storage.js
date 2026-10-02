@@ -39,6 +39,15 @@ window.Storage = (function () {
     remove(id) {
       writeAll(readAll().filter(p => p.id !== id));
     },
+    // Äldre projekt sparade värden platt ({1: "..."}); numera per sidfil.
+    migrate(project) {
+      const keys = Object.keys(project.values || {});
+      const isFlat = keys.length && keys.every(k => /^\d+$/.test(k));
+      if (isFlat) project.values = { 'index.html': project.values };
+      if (!project.values) project.values = {};
+      return project;
+    },
+
     newId() {
       return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     },

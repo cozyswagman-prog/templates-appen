@@ -8,11 +8,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Restaurang</title>
 <style>
+${window.fontCss('playfair')}
   :root { --red: #8c2f2f; --cream: #faf6ef; --dark: #26201a; --gold: #c9a35c; }
   * { box-sizing: border-box; margin: 0; }
   body { font-family: Georgia, 'Times New Roman', serif; color: var(--dark); background: var(--cream); line-height: 1.6; }
   .wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
-  h1, h2, h3 { font-weight: 400; letter-spacing: .5px; }
+  h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; font-weight: 400; letter-spacing: .5px; }
 
   header { position: relative; height: 520px; color: #fff; display: flex; align-items: center; justify-content: center; text-align: center; }
   header .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }

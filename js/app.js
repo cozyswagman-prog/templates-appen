@@ -100,14 +100,6 @@
 
   // ---------- Vyer / routing ----------
 
-  // Äldre projekt sparade värden platt ({1: "..."}); numera per sidfil.
-  function migrateValues(project) {
-    const keys = Object.keys(project.values || {});
-    const isFlat = keys.length && keys.every(k => /^\d+$/.test(k));
-    if (isFlat) project.values = { 'index.html': project.values };
-    if (!project.values) project.values = {};
-  }
-
   function showGallery() {
     currentProject = null;
     viewEditor.hidden = true;
@@ -139,7 +131,7 @@
   }
 
   function showEditor(project) {
-    migrateValues(project);
+    window.Storage.migrate(project);
     currentProject = project;
     viewGallery.hidden = true;
     viewEditor.hidden = false;

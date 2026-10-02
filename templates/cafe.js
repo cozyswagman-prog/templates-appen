@@ -3,16 +3,17 @@
 
   // Gemensam stil och sidhuvud för alla tre sidorna
   const css = `
+${window.fontCss('lora', 'inter')}
   :root { --green: #2f4a3a; --cream: #f7f3ec; --ink: #2b2b26; --warm: #c97b4a; }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: Georgia, 'Times New Roman', serif; background: var(--cream); color: var(--ink); line-height: 1.7; }
+  body { font-family: 'Lora', Georgia, 'Times New Roman', serif; background: var(--cream); color: var(--ink); line-height: 1.7; }
   .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
   h1, h2, h3 { font-weight: 400; }
 
   nav { background: var(--green); color: #f3ead9; }
   nav .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 16px; padding-bottom: 16px; }
   nav .brand { font-size: 20px; letter-spacing: 1px; }
-  nav .links { display: flex; gap: 22px; font-family: system-ui, sans-serif; font-size: 14px; }
+  nav .links { display: flex; gap: 22px; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; }
   nav a { color: #f3ead9; text-decoration: none; opacity: .85; }
   nav a:hover, nav a.here { opacity: 1; border-bottom: 2px solid var(--warm); padding-bottom: 2px; }
 
@@ -20,7 +21,7 @@
   .section-title { text-align: center; font-size: 32px; margin-bottom: 10px; }
   .section-sub { text-align: center; color: #6f6a58; font-style: italic; margin-bottom: 40px; }
 
-  footer { background: var(--green); color: #cfc8b4; text-align: center; padding: 24px; font-family: system-ui, sans-serif; font-size: 13px; }
+  footer { background: var(--green); color: #cfc8b4; text-align: center; padding: 24px; font-family: 'Inter', system-ui, sans-serif; font-size: 13px; }
 
   @media (max-width: 720px) {
     nav .wrap { flex-direction: column; gap: 10px; }
@@ -63,7 +64,7 @@
   .tre { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; }
   .tre img { width: 100%; height: 210px; object-fit: cover; border-radius: 10px; }
   .tre h3 { margin: 14px 0 6px; font-size: 20px; }
-  .tre p { color: #6f6a58; font-size: 15px; font-family: system-ui, sans-serif; }
+  .tre p { color: #6f6a58; font-size: 15px; font-family: 'Inter', system-ui, sans-serif; }
   @media (max-width: 720px) { .tre { grid-template-columns: 1fr; } .hero-inner h1 { font-size: 34px; } }
 </style>
 <div class="hero">
@@ -95,7 +96,7 @@
   .menylista h3 { font-size: 22px; color: var(--green); border-bottom: 2px solid var(--warm); padding-bottom: 8px; margin: 36px 0 18px; }
   .rad { display: flex; align-items: baseline; gap: 10px; padding: 9px 0; }
   .rad .dots { flex: 1; border-bottom: 1px dotted #b8b09a; }
-  .rad .pris { font-family: system-ui, sans-serif; font-weight: 600; color: var(--warm); }
+  .rad .pris { font-family: 'Inter', system-ui, sans-serif; font-weight: 600; color: var(--warm); }
 </style>
 <section>
   <div class="wrap">

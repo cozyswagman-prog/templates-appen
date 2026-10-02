@@ -32,6 +32,7 @@ window.Exporter = (function () {
   }
 
   async function exportSite(project) {
+    window.Storage.migrate(project);
     const template = window.TEMPLATES.find(t => t.id === project.templateId);
     if (!template) throw new Error('Templaten hittades inte');
     const pages = window.Editor.pagesOf(template);
@@ -40,6 +41,7 @@ window.Exporter = (function () {
     const images = zip.folder('images');
     const imageFiles = new Map(); // dataUrl -> filnamn (samma bild återanvänds)
     let imgCount = 0;
+    const fontFiles = new Set(); // "inter-400.woff2" osv. som sidorna refererar
 
     pages.forEach(page => {
       const doc = new DOMParser().parseFromString(page.html, 'text/html');
@@ -83,13 +85,27 @@ window.Exporter = (function () {
         img.setAttribute('src', 'images/' + filename);
       });
 
-      zip.file(page.file, '<!DOCTYPE html>\n' + doc.documentElement.outerHTML);
+      const html = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+      for (const m of html.matchAll(/fonts\/([a-z0-9-]+\.woff2)/g)) fontFiles.add(m[1]);
+      zip.file(page.file, html);
     });
+
+    // Packa med de självhostade typsnitten sidorna använder, plus licensen
+    if (fontFiles.size) {
+      const fonts = zip.folder('fonts');
+      for (const name of fontFiles) {
+        const r = await fetch('fonts/' + name);
+        if (r.ok) fonts.file(name, await r.arrayBuffer());
+      }
+      const lic = await fetch('fonts/LICENS.txt');
+      if (lic.ok) fonts.file('LICENS.txt', await lic.text());
+    }
 
     const sidlista = pages.map(p => '  - ' + p.file + ' (' + p.title + ')').join('\n');
     zip.file('LASMIG.txt',
       'Din hemsida ar klar!\n\n' +
-      'Filer:\n' + sidlista + '\n  - mappen images (dina bilder)\n\n' +
+      'Filer:\n' + sidlista + '\n  - mappen images (dina bilder)\n' +
+      (fontFiles.size ? '  - mappen fonts (typsnitt, se fonts/LICENS.txt)\n' : '') + '\n' +
       '1. Ladda upp ALLA filer till ditt webbhotell.\n' +
       '2. Klart - sidan fungerar direkt, inga installationer behovs.\n\n' +
       'Skapad med Templates.');

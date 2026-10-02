@@ -8,9 +8,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portfolio</title>
 <style>
+${window.fontCss('outfit')}
   :root { --bg: #101014; --card: #1a1a21; --text: #ececf1; --dim: #9a9aa6; --accent: #67e8aa; }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+  body { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
   .wrap { max-width: 1020px; margin: 0 auto; padding: 0 24px; }
   h1, h2 { font-weight: 800; letter-spacing: -.5px; }
 

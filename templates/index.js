@@ -1,6 +1,27 @@
 // Register över alla templates. Varje template-fil pushar in sig själv här.
 window.TEMPLATES = [];
 
+// Självhostade typsnitt (OFL-licens, se fonts/LICENS.txt).
+// Relativa sökvägar fungerar både i förhandsvisningen (srcdoc ärver appens
+// bas-URL) och i den exporterade sajten (exporten packar med fonts/-mappen).
+window.FONTS = {
+  inter:    { name: 'Inter' },
+  playfair: { name: 'Playfair Display' },
+  outfit:   { name: 'Outfit' },
+  lora:     { name: 'Lora' }
+};
+
+// fontCss('playfair','inter') → @font-face-regler för vikt 400 och 700
+window.fontCss = function (...ids) {
+  return ids.map(id => {
+    const f = window.FONTS[id];
+    return [400, 700].map(w =>
+      `@font-face{font-family:'${f.name}';font-style:normal;font-weight:${w};` +
+      `font-display:swap;src:url('fonts/${id}-${w}.woff2') format('woff2');}`
+    ).join('\n');
+  }).join('\n');
+};
+
 // Platshållarbild som inline-SVG (fungerar helt offline).
 // ph(bredd, höjd, bakgrundsfärg, textfärg, etikett)
 window.ph = function (w, h, bg, fg, label) {

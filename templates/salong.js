@@ -8,11 +8,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Salong</title>
 <style>
+${window.fontCss('playfair', 'inter')}
   :root { --rose: #b76e79; --blush: #f9f1ee; --ink: #322b2d; --sand: #e8dcd5; }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; color: var(--ink); background: #fff; line-height: 1.65; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--ink); background: #fff; line-height: 1.65; }
   .wrap { max-width: 1020px; margin: 0 auto; padding: 0 24px; }
-  h1, h2 { font-weight: 300; letter-spacing: 2px; }
+  h1, h2 { font-family: 'Playfair Display', Georgia, serif; font-weight: 400; letter-spacing: 1px; }
 
   nav { display: flex; justify-content: center; padding: 22px; font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: var(--rose); font-weight: 600; }
 
