@@ -11,6 +11,7 @@
   let dirty = false;
   let deviceMode = 'desktop';
   let showBadges = true;
+  let browsingTemplate = false;
   const badgePreferences = { mobile: true, desktop: innerWidth > 900 };
   let imageBusy = false;
   const saveStatus = document.getElementById('save-status');
@@ -35,6 +36,10 @@
   }
 
   function setPreviewOnly(enabled) {
+    if (!enabled && browsingTemplate) {
+      browsingTemplate = false;
+      setDevice(deviceMode);
+    }
     viewEditor.classList.toggle('preview-only', enabled);
     const button = document.getElementById('btn-preview');
     button.textContent = enabled ? 'Redigera' : 'Förhandsvisa';
@@ -84,6 +89,7 @@
       thumb.className = 'thumb';
       const mini = document.createElement('iframe');
       mini.setAttribute('tabindex', '-1');
+      mini.setAttribute('scrolling', 'no');
       mini.setAttribute('title', t.name + ' miniatyr');
       mini.srcdoc = pages[0].html;
       thumb.appendChild(mini);
@@ -107,6 +113,8 @@
       body.querySelector('.btn-use').addEventListener('click', () => startTemplate(t.id));
       body.querySelector('.btn-look').addEventListener('click', () => {
         startTemplate(t.id);
+        browsingTemplate = true;
+        setDevice(deviceMode);
         setPreviewOnly(true);
       });
 
@@ -119,6 +127,7 @@
     const list = document.getElementById('my-projects');
     const projects = window.Storage.list();
     document.getElementById('no-projects').hidden = projects.length > 0;
+    document.querySelector('.storage-note').hidden = projects.length === 0;
     list.innerHTML = '';
 
     projects.forEach(p => {
@@ -216,6 +225,7 @@
   }
 
   function showEditor(project) {
+    browsingTemplate = false;
     window.Storage.migrate(project);
     currentProject = project;
     dirty = false;
@@ -280,6 +290,7 @@
     setPreviewOnly(!viewEditor.classList.contains('preview-only'));
   });
   document.getElementById('btn-badges').addEventListener('click', () => {
+    browsingTemplate = false;
     showBadges = !showBadges;
     badgePreferences[deviceMode] = showBadges;
     window.Editor.setBadgesVisible(showBadges);
@@ -335,7 +346,7 @@
 
   function setDevice(mode) {
     deviceMode = mode;
-    showBadges = badgePreferences[mode];
+    showBadges = browsingTemplate ? false : badgePreferences[mode];
     window.Editor.setBadgesVisible(showBadges);
     document.getElementById('btn-badges').textContent = showBadges ? 'Dölj nummer' : 'Visa nummer';
     document.getElementById('btn-badges').setAttribute('aria-pressed', String(showBadges));

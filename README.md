@@ -38,6 +38,13 @@ npx -y serve -l 3456 .
 
 ## Redigera, spara och förhandsvisa
 
+- Galleriet har en samlad projektyta och rubriken **Välj en mall**. Tomma projektlistor
+  visar en kort startinstruktion; information om säkerhetskopiering visas när projekt finns.
+- Mallkort med plats för två knappar visar dem bredvid varandra. Långa projektnamn
+  radbryts och projektåtgärderna anpassas till mobil och surfplatta.
+- Inställningen för minskad rörelse stänger av appens animationer och kortens lyft.
+- **Titta på mallen** visar sidan utan redigeringsnummer även vid växling mellan
+  dator och mobil. **Visa nummer** aktiverar dem; redigering återgår till sparad visningspreferens.
 - På mobil växlar **Förhandsvisa / Redigera** mellan hela sidvyn och fullbreda fält.
   På större skärmar visas fält och förhandsvisning bredvid varandra; knappen ger större förhandsvisning.
 - **Dator** renderar alltid sidan i 1200 CSS-pixlar och **Mobil** i 390; bilden skalas
