@@ -1,0 +1,79 @@
+<title>Templates</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- Publiceringsversionen av appen (claude.ai). Samma innehåll som index.html,
+     men utan dokumentskal — det läggs på vid publicering. Håll i synk! -->
+
+<div id="view-gallery" class="view">
+  <header class="app-header">
+    <div class="logo">T<span>emplates</span></div>
+    <p class="tagline">Välj en färdig hemsida · byt bilder och texter · ladda ner din sajt</p>
+  </header>
+
+  <main class="gallery-main">
+    <section id="my-projects-section" class="projects-section">
+      <div class="section-head">
+        <h2>Mina projekt</h2>
+        <label class="btn btn-secondary btn-small">
+          Importera projektfil
+          <input id="import-file" type="file" accept=".json,application/json" hidden>
+        </label>
+      </div>
+      <p id="no-projects" class="empty-note" hidden>Inga sparade projekt ännu — välj en template nedan, eller importera en projektfil från en annan dator.</p>
+      <div id="my-projects" class="project-list"></div>
+    </section>
+
+    <section>
+      <h2>Templates</h2>
+      <div id="template-gallery" class="template-grid"></div>
+    </section>
+  </main>
+</div>
+
+<div id="view-editor" class="view" hidden>
+  <div class="editor-topbar">
+    <button id="btn-back" class="btn btn-ghost" title="Tillbaka till galleriet">&larr; Galleri</button>
+    <input id="project-name" class="project-name-input" type="text" value="Min hemsida" spellcheck="false">
+    <div class="topbar-spacer"></div>
+    <div class="device-toggle">
+      <button id="btn-desktop" class="btn btn-ghost active" title="Förhandsvisa som dator">🖥️ Dator</button>
+      <button id="btn-mobile" class="btn btn-ghost" title="Förhandsvisa som mobil">📱 Mobil</button>
+    </div>
+    <button id="btn-save" class="btn btn-secondary">Spara</button>
+    <button id="btn-export" class="btn btn-primary">Exportera sajt (.zip)</button>
+  </div>
+
+  <div id="page-tabs" class="page-tabs" hidden></div>
+
+  <div class="editor-body">
+    <aside class="editor-panel">
+      <div class="panel-intro">
+        <strong>Dina rutor</strong>
+        <p>Varje nummer motsvarar en ruta på sidan. Ändra text eller byt bild — förhandsvisningen uppdateras direkt.</p>
+      </div>
+      <div id="slot-fields"></div>
+    </aside>
+    <div class="editor-preview" id="preview-area">
+      <iframe id="preview-frame" title="Förhandsvisning"></iframe>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="templates/index.js"></script>
+<script src="templates/restaurang.js"></script>
+<script src="templates/salong.js"></script>
+<script src="templates/byggfirma.js"></script>
+<script src="templates/butik.js"></script>
+<script src="templates/portfolio.js"></script>
+<script src="templates/cafe.js"></script>
+<script src="templates/gym.js"></script>
+<script src="templates/konsult.js"></script>
+<script src="templates/hemservice.js"></script>
+<script src="js/save.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/export.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/app.js"></script>

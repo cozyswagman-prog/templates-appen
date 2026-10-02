@@ -49,9 +49,7 @@
       body.querySelector('.card-title').textContent = t.name;
       body.querySelector('.card-cat').textContent =
         t.category + (pages.length > 1 ? ' · ' + pages.length + ' sidor' : '');
-      body.querySelector('button').addEventListener('click', () => {
-        location.hash = '#/new/' + t.id;
-      });
+      body.querySelector('button').addEventListener('click', () => startTemplate(t.id));
 
       card.append(thumb, body);
       grid.appendChild(card);
@@ -81,18 +79,29 @@
         (t ? t.name : 'Okänd template') + ' · ' +
         new Date(p.updatedAt).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-      row.querySelector('.btn-secondary').addEventListener('click', () => {
-        location.hash = '#/project/' + p.id;
+      row.querySelector('.btn-secondary').addEventListener('click', () => openProject(p.id));
+      row.querySelector('.btn-fil').addEventListener('click', async () => {
+        const status = await window.Storage.downloadProjectFile(p);
+        if (status === 'saved') window.showToast('Projektfilen laddas ner.');
       });
-      row.querySelector('.btn-fil').addEventListener('click', () => {
-        window.Storage.downloadProjectFile(p);
-        window.showToast('Projektfilen laddas ner.');
-      });
-      row.querySelector('.btn-danger').addEventListener('click', () => {
-        if (confirm('Ta bort projektet "' + p.name + '"? Detta går inte att ångra.')) {
+
+      // Radering i två steg — dialogrutor (confirm) fungerar inte överallt
+      const delBtn = row.querySelector('.btn-danger');
+      let armedTimer = null;
+      delBtn.addEventListener('click', () => {
+        if (delBtn.dataset.armed) {
+          clearTimeout(armedTimer);
           window.Storage.remove(p.id);
           renderProjects();
+          window.showToast('Projektet togs bort.');
+          return;
         }
+        delBtn.dataset.armed = '1';
+        delBtn.textContent = 'Säker? Ta bort';
+        armedTimer = setTimeout(() => {
+          delete delBtn.dataset.armed;
+          delBtn.textContent = 'Ta bort';
+        }, 3000);
       });
       list.appendChild(row);
     });
@@ -141,33 +150,27 @@
     openPage(window.Editor.pagesOf(template)[0].file);
   }
 
-  function route() {
-    const hash = location.hash || '#/';
-    let m;
-    if ((m = hash.match(/^#\/new\/(.+)$/))) {
-      const t = window.TEMPLATES.find(x => x.id === m[1]);
-      if (!t) { location.hash = '#/'; return; }
-      showEditor({
-        id: window.Storage.newId(),
-        templateId: t.id,
-        name: t.name + ' – min sida',
-        values: {},
-        updatedAt: Date.now()
-      });
-    } else if ((m = hash.match(/^#\/project\/(.+)$/))) {
-      const p = window.Storage.get(m[1]);
-      if (!p) { window.showToast('Projektet hittades inte.'); location.hash = '#/'; return; }
-      showEditor(p);
-    } else {
-      showGallery();
-    }
+  function startTemplate(templateId) {
+    const t = window.TEMPLATES.find(x => x.id === templateId);
+    if (!t) return;
+    showEditor({
+      id: window.Storage.newId(),
+      templateId: t.id,
+      name: t.name + ' – min sida',
+      values: {},
+      updatedAt: Date.now()
+    });
+  }
+
+  function openProject(id) {
+    const p = window.Storage.get(id);
+    if (!p) { window.showToast('Projektet hittades inte.'); return; }
+    showEditor(p);
   }
 
   // ---------- Editorns topprad ----------
 
-  document.getElementById('btn-back').addEventListener('click', () => {
-    location.hash = '#/';
-  });
+  document.getElementById('btn-back').addEventListener('click', showGallery);
 
   nameInput.addEventListener('input', () => {
     if (currentProject) currentProject.name = nameInput.value;
@@ -184,11 +187,12 @@
   document.getElementById('btn-export').addEventListener('click', async () => {
     if (!currentProject) return;
     try {
-      await window.Exporter.exportSite(currentProject);
-      window.showToast('Din sajt laddas ner som zip!');
+      const status = await window.Exporter.exportSite(currentProject);
+      if (status === 'saved') window.showToast('Din sajt laddas ner som zip!');
+      else if (status === 'error') window.showToast('Exporten kunde inte sparas — försök igen.');
     } catch (e) {
       console.error(e);
-      window.showToast('Exporten misslyckades — se konsolen.');
+      window.showToast('Exporten misslyckades.');
     }
   });
 
@@ -219,7 +223,6 @@
 
   // ---------- Start ----------
 
-  window.addEventListener('hashchange', route);
   renderGallery();
-  route();
+  showGallery();
 })();

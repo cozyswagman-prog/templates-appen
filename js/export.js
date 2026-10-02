@@ -111,13 +111,7 @@ window.Exporter = (function () {
       'Skapad med Templates.');
 
     const blob = await zip.generateAsync({ type: 'blob' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = slugify(project.name) + '.zip';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    return window.saveFile(blob, slugify(project.name) + '.zip');
   }
 
   return { exportSite };

@@ -4,6 +4,14 @@ Ett mini-CMS: kunden väljer en färdig hemsida ur ett galleri, byter bilder och
 numrerade rutor, och laddar ner sin färdiga sajt som en zip (ren HTML — fungerar på vilket
 webbhotell som helst). Ingen build-kedja, inget backend; allt är statiska filer.
 
+## Appen på claude.ai (telefon/surfplatta)
+
+Appen är publicerad som privat sida: https://claude.ai/artifact/E73XzAx9PoJfTHfPftmvpr
+(bara ägaren kan öppna den; kräver inloggning på claude.ai). `artifact.html` är
+publiceringsversionen av `index.html` — **håll dem i synk** vid ändringar i sidstrukturen.
+Uppdatering: be Claude publicera om på samma länk efter kodändringar. Nedladdningar går
+där via claude:s downloads-kapacitet (se `js/save.js`); lokalt används vanliga länkar.
+
 ## Köra appen
 
 Kräver bara en statisk filserver, t.ex.:

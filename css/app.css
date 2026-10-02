@@ -20,9 +20,53 @@
   --muted: #6b7280;
   --accent: #4f46e5;
   --accent-dark: #4338ca;
+  --accent-tint: rgba(79, 70, 229, .1);
   --border: #e5e7eb;
+  --hover: rgba(0, 0, 0, .05);
+  --preview-bg: #dfe2e8;
+  --danger: #b91c1c;
+  --danger-bg: #fee2e2;
+  --toast-bg: #1a1d24;
+  --toast-fg: #ffffff;
   --radius: 12px;
   --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15161a;
+    --surface: #1f2127;
+    --text: #e8e9ee;
+    --muted: #9ba1ad;
+    --accent: #818cf8;
+    --accent-dark: #6d78f6;
+    --accent-tint: rgba(129, 140, 248, .16);
+    --border: #30333c;
+    --hover: rgba(255, 255, 255, .07);
+    --preview-bg: #0e0f12;
+    --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, .15);
+    --toast-bg: #e8e9ee;
+    --toast-fg: #15161a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15161a;
+  --surface: #1f2127;
+  --text: #e8e9ee;
+  --muted: #9ba1ad;
+  --accent: #818cf8;
+  --accent-dark: #6d78f6;
+  --accent-tint: rgba(129, 140, 248, .16);
+  --border: #30333c;
+  --hover: rgba(255, 255, 255, .07);
+  --preview-bg: #0e0f12;
+  --danger: #f87171;
+  --danger-bg: rgba(248, 113, 113, .15);
+  --toast-bg: #e8e9ee;
+  --toast-fg: #15161a;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -158,6 +202,24 @@ html, body {
   .project-row .p-actions { margin-left: 0; width: 100%; flex-wrap: wrap; }
 }
 
+/* Editor på mobil: förhandsvisning överst, rutorna under */
+@media (max-width: 760px) {
+  .editor-body { flex-direction: column; }
+  .editor-preview { order: 1; flex: 1 1 52%; min-height: 0; padding: 10px; }
+  .editor-panel {
+    order: 2;
+    width: 100%;
+    flex: 1 1 48%;
+    min-height: 0;
+    border-right: 0;
+    border-top: 1px solid var(--border);
+    padding: 14px;
+  }
+  .gallery-main { padding-left: 16px; padding-right: 16px; }
+  .app-header { padding: 32px 16px 4px; }
+  .logo { font-size: 34px; }
+}
+
 /* ---------- Knappar ---------- */
 
 .btn {
@@ -179,10 +241,10 @@ html, body {
 }
 .btn-secondary:hover { background: var(--bg); }
 .btn-ghost { background: transparent; color: var(--muted); }
-.btn-ghost:hover { color: var(--text); background: rgba(0,0,0,.05); }
-.btn-ghost.active { color: var(--accent); background: rgba(79,70,229,.1); }
-.btn-danger { background: transparent; color: #b91c1c; }
-.btn-danger:hover { background: #fee2e2; }
+.btn-ghost:hover { color: var(--text); background: var(--hover); }
+.btn-ghost.active { color: var(--accent); background: var(--accent-tint); }
+.btn-danger { background: transparent; color: var(--danger); }
+.btn-danger:hover, .btn-danger[data-armed] { background: var(--danger-bg); }
 
 /* ---------- Editor ---------- */
 
@@ -212,7 +274,7 @@ html, body {
   background: transparent;
 }
 .project-name-input:hover { border-color: var(--border); }
-.project-name-input:focus { border-color: var(--accent); outline: none; background: #fff; }
+.project-name-input:focus { border-color: var(--accent); outline: none; background: var(--surface); }
 
 .topbar-spacer { flex: 1; }
 .device-toggle { display: flex; gap: 4px; margin-right: 8px; }
@@ -238,8 +300,8 @@ html, body {
 .page-tab:hover { background: var(--bg); color: var(--text); }
 .page-tab.active {
   color: var(--accent);
-  background: rgba(79,70,229,.1);
-  border-color: rgba(79,70,229,.25);
+  background: var(--accent-tint);
+  border-color: var(--accent);
 }
 
 .editor-body {
@@ -338,7 +400,7 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: stretch;
-  background: #dfe2e8;
+  background: var(--preview-bg);
   padding: 20px;
   overflow: auto;
 }
@@ -361,11 +423,11 @@ html, body {
 
 .toast {
   position: fixed;
-  bottom: 28px;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  background: #1a1d24;
-  color: #fff;
+  background: var(--toast-bg);
+  color: var(--toast-fg);
   font-size: 14px;
   font-weight: 600;
   padding: 12px 22px;

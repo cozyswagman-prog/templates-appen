@@ -52,17 +52,12 @@ window.Storage = (function () {
       return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
     },
 
-    // Ladda ner ett projekt som fil (backup eller flytt till annan dator)
+    // Ladda ner ett projekt som fil (backup eller flytt till annan enhet)
     downloadProjectFile(project) {
       const data = { app: 'templates', version: 1, project };
       const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = (project.name || 'projekt').replace(/[\\/:*?"<>|]/g, '_') + '.projekt.json';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      const filename = (project.name || 'projekt').replace(/[\\/:*?"<>|]/g, '_') + '.projekt.json';
+      return window.saveFile(blob, filename);
     },
 
     // Läs in en projektfil; returnerar projektet via callback eller ett felmeddelande
