@@ -225,4 +225,13 @@
 
   renderGallery();
   showGallery();
+
+  if (window.APP_VERSION) {
+    const f = document.createElement('p');
+    f.className = 'empty-note';
+    f.style.textAlign = 'center';
+    f.style.marginTop = '48px';
+    f.textContent = 'Templates v' + window.APP_VERSION;
+    document.querySelector('.gallery-main').appendChild(f);
+  }
 })();
