@@ -226,6 +226,63 @@
   renderGallery();
   showGallery();
 
+  // ---------- Installera appen ----------
+  // Visar en riktig installationsknapp när webbläsaren tillåter (Android/dator),
+  // och tydliga instruktioner på iPhone/iPad där knappen inte finns.
+  (function installUi() {
+    let topLevel = true;
+    try { topLevel = window.self === window.top; } catch { topLevel = false; }
+    const standalone = matchMedia('(display-mode: standalone)').matches
+      || navigator.standalone === true;
+    if (!topLevel || standalone) return; // redan installerad, eller inbäddad vy
+
+    const area = document.createElement('div');
+    area.className = 'install-area';
+    document.querySelector('.app-header').appendChild(area);
+
+    function visaKnapp() {
+      area.innerHTML = '';
+      const b = document.createElement('button');
+      b.className = 'btn btn-primary';
+      b.textContent = '📲 Installera appen';
+      b.addEventListener('click', async () => {
+        const p = window.deferredInstallPrompt;
+        if (!p) return;
+        p.prompt();
+        const val = await p.userChoice;
+        window.deferredInstallPrompt = null;
+        if (val.outcome === 'accepted') {
+          window.showToast('Appen installeras — kolla hemskärmen!');
+          area.remove();
+        }
+      });
+      area.appendChild(b);
+    }
+
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (window.deferredInstallPrompt) visaKnapp();
+    window.addEventListener('installready', visaKnapp);
+    window.addEventListener('appinstalled', () => area.remove());
+
+    if (isIos) {
+      area.innerHTML =
+        '<p class="install-tip">Installera: öppna sidan i <strong>Safari</strong>, ' +
+        'tryck på <strong>Dela</strong>-knappen <span aria-hidden="true">(fyrkanten med pil)</span> ' +
+        'och välj <strong>”Lägg till på hemskärmen”</strong>.</p>';
+    } else {
+      // Android/dator: om webbläsaren inte erbjuder installation inom några
+      // sekunder, visa hur man gör manuellt.
+      setTimeout(() => {
+        if (!window.deferredInstallPrompt && !area.querySelector('button') && !area.innerHTML) {
+          area.innerHTML =
+            '<p class="install-tip">Får du ingen installationsfråga? Öppna sidan i ' +
+            '<strong>Chrome</strong> eller <strong>Edge</strong> och välj ' +
+            '<strong>”Installera app”</strong> i webbläsarens meny (⋮).</p>';
+        }
+      }, 4000);
+    }
+  })();
+
   if (window.APP_VERSION) {
     const f = document.createElement('p');
     f.className = 'empty-note';

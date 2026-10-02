@@ -75,6 +75,15 @@
   <div id="toast" class="toast" hidden></div>
 
   <script>
+    // Fånga webbläsarens installationserbjudande så appen kan visa en egen
+    // "Installera appen"-knapp (hanteras i js/app.js).
+    window.deferredInstallPrompt = null;
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      window.deferredInstallPrompt = e;
+      window.dispatchEvent(new Event('installready'));
+    });
+
     // Service worker gör appen installerbar, offline-kapabel och självuppdaterande:
     // när en ny version deployats laddas appen om automatiskt — men aldrig mitt
     // i en redigering, då visas bara ett meddelande.

@@ -102,6 +102,19 @@ html, body {
   font-size: 15px;
 }
 
+.install-area { margin-top: 18px; }
+.install-area .btn { font-size: 15px; padding: 11px 26px; }
+.install-tip {
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 46ch;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
 .gallery-main {
   max-width: 1180px;
   margin: 0 auto;
