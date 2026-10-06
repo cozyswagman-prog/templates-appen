@@ -29,14 +29,21 @@ window.ph = function (w, h, bg, fg, label) {
   // samma bild visas med object-fit: cover på olika skärmstorlekar.
   const title = String(label || 'Exempelbild').replace(/[<>&"']/g, char =>
     ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[char]);
+  // Lugn tonad yta i stället för en skiss: mjukt ljus från övre vänstra hörnet, svag vinjett och en liten
+  // diskret bildsymbol. Ser avsiktlig ut tills kunden lägger in en egen bild.
+  // Symbolen sitter i nedre högra hörnet så att den aldrig krockar med centrerad text i en hero.
+  const s = Math.min(w, h), g = s * 0.036, cx = w - g * 2.6, cy = h - g * 2.2, sw = Math.max(1.5, s * 0.004);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">` +
     `<title>${title}</title>` +
-    `<rect width="${w}" height="${h}" fill="${bg}"/>` +
-    `<rect x="${w * 0.04}" y="${h * 0.07}" width="${w * 0.92}" height="${h * 0.86}" fill="none" stroke="${fg}" stroke-opacity="0.35" stroke-width="2" stroke-dasharray="8 7"/>` +
-    `<circle cx="${w / 2}" cy="${h / 2 - h * 0.08}" r="${Math.min(w, h) * 0.09}" fill="${fg}" fill-opacity="0.3"/>` +
-    `<path d="M ${w / 2 - Math.min(w, h) * 0.18} ${h / 2 + h * 0.14} l ${Math.min(w, h) * 0.12} -${Math.min(w, h) * 0.12} l ${Math.min(w, h) * 0.08} ${Math.min(w, h) * 0.07} l ${Math.min(w, h) * 0.09} -${Math.min(w, h) * 0.09} l ${Math.min(w, h) * 0.07} ${Math.min(w, h) * 0.14} z" fill="${fg}" fill-opacity="0.3"/>` +
-    `</svg>`;
+    `<defs><linearGradient id="l" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient>` +
+    `<radialGradient id="v" cx=".5" cy=".45" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".08"/></radialGradient></defs>` +
+    `<rect width="${w}" height="${h}" fill="${bg}"/><rect width="${w}" height="${h}" fill="url(#l)"/><rect width="${w}" height="${h}" fill="url(#v)"/>` +
+    `<g fill="none" stroke="${fg}" stroke-opacity=".32" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">` +
+    `<rect x="${cx - g}" y="${cy - g * 0.78}" width="${g * 2}" height="${g * 1.56}" rx="${g * 0.18}"/>` +
+    `<circle cx="${cx - g * 0.42}" cy="${cy - g * 0.3}" r="${g * 0.16}"/>` +
+    `<path d="M ${cx - g * 0.82} ${cy + g * 0.55} L ${cx - g * 0.2} ${cy - g * 0.02} L ${cx + g * 0.18} ${cy + g * 0.3} L ${cx + g * 0.45} ${cy + g * 0.08} L ${cx + g * 0.82} ${cy + g * 0.5}"/>` +
+    `</g></svg>`;
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 };
 
@@ -45,7 +52,8 @@ window.ph = function (w, h, bg, fg, label) {
 window.SiteKit = (function () {
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const text = (key, label, value, tag = 'p') => `<${tag} data-content="${key}" data-caption="${escape(label)}">${escape(value)}</${tag}>`;
-  const picture = (key, label, bg = '#ded8cd', ink = '#645447') => `<img data-image-key="${key}" data-caption="${escape(label)}" src="${window.ph(1000,750,bg,ink,label)}" alt="" loading="lazy">`;
+  // Utan egna färger får platshållaren mallens palett (linje + text) i decorate, så den smälter in.
+  const picture = (key, label, bg, ink) => `<img data-image-key="${key}" data-caption="${escape(label)}"${bg ? '' : ' data-ph-palette'} src="${window.ph(1000,750,bg || '#ded8cd',ink || '#645447',label)}" alt="" loading="lazy">`;
   const action = (key, label) => `<a class="kit-button" data-action="${key}" data-caption="${escape(label)}">${escape(label)}</a>`;
   const section = (key, title, content, extra = '') => `<section class="kit-section ${extra}" data-section="${key}" data-caption="${escape(title)}"><div class="kit-wrap">${text(key+'.title',title+' – rubrik',title,'h2')}${content}</div></section>`;
   const detail = (key, title, body) => `<details class="kit-detail"><summary>${text(key+'.title',title+' – rubrik',title,'span')}</summary>${text(key+'.body',title+' – text',body)}</details>`;
@@ -77,6 +85,7 @@ window.SiteKit = (function () {
     .kit-salong .price-row{flex-wrap:wrap}.kit-salong .price-row>small{font:14px/1.5 system-ui;flex-basis:100%}.kit-inline{padding:0 18px 18px}.kit-inline h3{font-size:20px}
     .hero-inner .kit-link-note{color:inherit;flex-basis:100%;margin:0}.kit-gym .pass>.kit-button{margin:0 20px 20px}.kit-gym .pass>.kit-link-note{margin:0 20px 20px}
     .kit-form a,.kit-section a:not(.kit-button){color:inherit;text-decoration:underline;text-underline-offset:3px}
+    .kit-button.kit-secondary{background:transparent;color:var(--kit-accent)}.kit-hero-actions{margin:28px 0 0}.kit-tel{color:inherit;text-decoration:none}.kit-tel[href]:hover{text-decoration:underline;text-underline-offset:3px}
     :where(a,button,input,select,textarea,summary):focus-visible{outline:3px solid var(--kit-accent);outline-offset:4px}
     nav a{display:inline-flex;align-items:center;min-height:44px}.kit-choice{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kit-choice a{white-space:normal}
     @media(max-width:720px){.kit-section{padding:44px 0}.kit-grid,.kit-choice{grid-template-columns:1fr;gap:24px}.kit-wrap{padding:0 22px}.kit-actions>.kit-button{flex:1 1 130px}.kit-filter{gap:8px}.kit-filter button{flex:1 1 auto}.kit-section h3{font-size:23px}}
@@ -141,10 +150,14 @@ window.SiteKit = (function () {
       additions+=enquiry('Typ av arbete','Berätta om ditt byggprojekt',['Renovering','Nybyggnation','Projektledning','Annat'],true);
     } else if(id==='butik') {
       const products=[...doc.querySelectorAll('.pbody')].map(e=>e.parentElement);
+      const shelf=products[0]?.closest('section');if(shelf)shelf.id='kit-produkter';const visit=doc.querySelector('section.contact');if(visit)visit.id='kit-besok';
+      doc.querySelector('.hero h1')?.parentElement.insertAdjacentHTML('beforeend','<div class="kit-actions kit-hero-actions"><a class="kit-button" href="#kit-produkter">Se favoriterna</a><a class="kit-button kit-secondary" href="#kit-besok">Besök butiken</a></div>');
       products.forEach((el,i)=>{el.classList.add('kit-product');el.insertAdjacentHTML('beforeend',`<div class="kit-inline">${detail('product.'+i,'Detaljer & skötsel','Beskriv material, mått, färgval och hur produkten sköts.')}${action('buy-'+i,'Köp produkten')}</div>`);});
       filters(doc,'.kit-product',['inredning','textil','inredning','dukning','dukning','textil'],[['inredning','Inredning'],['textil','Textil'],['dukning','Dukning']],'products');
       additions+=section('collection','Samla dina favoriter',`<div class="kit-grid">${picture('collection.photo','Bild för kollektionen')}<div><div class="kit-eyebrow">Utvalt med omsorg</div>${text('collection.name','Kollektionens namn','Till dukningen','h3')}${text('collection.story','Kollektionens berättelse','Presentera en samling produkter och berätta hur materialen och formerna passar ihop.')}</div></div>`);
     } else if(id==='portfolio') {
+      const works=doc.querySelector('.work-grid')?.closest('section');if(works)works.id='kit-arbeten';
+      doc.querySelector('.hero .wrap')?.insertAdjacentHTML('beforeend','<div class="kit-actions kit-hero-actions"><a class="kit-button" href="#kit-arbeten">Se mina arbeten</a><a class="kit-button kit-secondary" href="#kit-enquiry">Starta ett projekt</a></div>');
       filters(doc,'.work',['foto','identitet','foto','webb'],[['foto','Foto'],['identitet','Identitet'],['webb','Webb']],'works');
       doc.querySelectorAll('.work').forEach((el,i)=>el.insertAdjacentHTML('beforeend',`<div class="kit-inline">${detail('work.'+i+'.brief','Uppdraget','Beskriv kundens mål och din roll.')}${detail('work.'+i+'.process','Process & resultat','Visa hur du arbetade och vad som levererades.')}</div>`));
       additions+=enquiry('Projekt','Låt oss skapa något tillsammans',['Foto','Visuell identitet','Webb','Annat']);
@@ -197,6 +210,7 @@ window.SiteKit = (function () {
     doc.querySelectorAll('[data-content]').forEach(el=>el.dataset.original=el.textContent);
     doc.querySelectorAll('a[href^="#"]:not([data-link-key])').forEach(el=>el.dataset.linkKey='fragment-'+el.getAttribute('href').slice(1));
     doc.querySelectorAll('[data-link-key]').forEach(el=>el.dataset.defaultHref=el.getAttribute('href')||'');
+    doc.querySelectorAll('img[data-ph-palette]').forEach(img=>{img.setAttribute('src',window.ph(1000,750,colors[3],colors[2],img.dataset.caption));img.removeAttribute('data-ph-palette');});
     return {...page,html:'<!DOCTYPE html>\n'+doc.documentElement.outerHTML};
   }
 
@@ -245,6 +259,11 @@ window.SiteKit = (function () {
       if(!url&&!hint){hint=doc.createElement('small');hint.className='kit-link-note';el.after(hint);}
       if(hint){hint.textContent=missingSection?'Avsnittet är dolt eller saknas.':'Onlinefunktionen är inte ansluten ännu.';hint.hidden=!!url;}
     });
+    // Samma notis visas en gång per knappgrupp, inte under varje knapp; knapparna själva ser inaktiva ut.
+    const groups=new Map();
+    doc.querySelectorAll('.kit-link-note').forEach(note=>{if(note.hidden)return;const owner=note.closest('.kit-actions')||note.closest('section,.kit-section')||note.parentElement;const key=note.textContent;if(!groups.has(owner))groups.set(owner,new Map());const seen=groups.get(owner);if(seen.has(key))seen.get(key).hidden=true;seen.set(key,note);});
+    // Telefonnumret i toppraden (byggfirma) blir klickbart; numret är kundens eget fält.
+    doc.querySelectorAll('.topbar .tel').forEach(tel=>{let link=tel.parentElement.matches('a.kit-tel')?tel.parentElement:null;if(!link){link=doc.createElement('a');link.className='kit-tel';tel.before(link);link.append(tel);}const href=safeLink('tel:'+tel.textContent.trim());if(href)link.setAttribute('href',href);else link.removeAttribute('href');});
     doc.querySelectorAll('[data-enquiry]').forEach(form=>{form.dataset.endpoint=endpoint(b.formEndpoint);if(form.dataset.endpoint)form.action=form.dataset.endpoint;else form.removeAttribute('action');const privacy=safeLink(b.privacy);const link=form.querySelector('[data-privacy]');link.hidden=!privacy;if(privacy)link.href=privacy;form.querySelector('[type="submit"]').disabled=!form.dataset.endpoint;const status=form.querySelector('[role=status]');status.textContent=form.dataset.endpoint?'':'Formuläret är inte anslutet ännu. Använd företagets telefon eller e-post.';});
     const calc=doc.querySelector('.kit-calculator');if(calc){calc.dataset.rates=JSON.stringify(site.rates);calc.dispatchEvent(new Event('change',{bubbles:true}));}
   }

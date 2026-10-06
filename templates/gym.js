@@ -100,7 +100,6 @@ ${window.fontCss('outfit', 'inter')}
   /* Tränare: tonat band, och platshållarbilderna i sidans mörka palett (riktiga bilder påverkas inte). */
   .kit-gym [data-section="trainers"] { background: var(--band); }
   .kit-gym [data-section="trainers"] .kit-grid { gap: 32px; }
-  .kit-gym [data-section="trainers"] img[src^="data:image/svg+xml"] { filter: invert(1) brightness(.92); }
 
   /* Förfrågan: rubrik och ingress till vänster, formuläret till höger på stora skärmar. */
   .kit-gym [data-section="enquiry"] { background: var(--band); }

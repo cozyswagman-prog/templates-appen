@@ -53,9 +53,9 @@ ${window.fontCss('outfit', 'inter')}
   .services { background: var(--grey); }
   .service-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
   .service { --pad-y: 32px; --pad-x: 28px; position: relative; background: #fff; border: 1px solid var(--line); border-top: 4px solid var(--navy); border-radius: var(--radius); padding: var(--pad-y) var(--pad-x); }
-  /* Den mörka ikonplattan ligger bakom ikonen, så att emojitecknet kan tonas till en enhetlig, ljus enfärgad ikon. */
+  /* Den mörka ikonplattan ligger bakom ikonen; ikonerna är linjeikoner i samma vikt som ärver färgen. */
   .service::before { content: ""; position: absolute; top: var(--pad-y); left: var(--pad-x); width: 52px; height: 52px; border-radius: var(--radius); background: var(--navy); }
-  .service .icon { position: relative; width: 52px; height: 52px; font-size: 24px; line-height: 1; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; filter: grayscale(1) brightness(1.9); }
+  .service .icon { position: relative; width: 52px; height: 52px; font-size: 24px; line-height: 1; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; color: #fff; }
   .service h3 { font-size: 22px; margin-bottom: 8px; color: var(--navy); }
   .service p { color: var(--muted); font-size: 16px; line-height: 1.6; }
 
@@ -220,9 +220,9 @@ ${window.fontCss('outfit', 'inter')}
     <h2 class="section-title" data-slot="text" data-label="Rubrik för tjänster">Våra tjänster</h2>
     <p class="section-sub" data-slot="text" data-label="Undertext för tjänster">Totalentreprenad eller enskilda uppdrag — vi anpassar oss efter ditt projekt.</p>
     <div class="service-grid">
-      <div class="service"><div class="icon">🏠</div><h3 data-slot="text" data-label="Tjänst 1 – rubrik">Renovering</h3><p data-slot="text" data-label="Tjänst 1 – beskrivning">Kök, badrum och helrenoveringar med hög finish.</p></div>
-      <div class="service"><div class="icon">🔨</div><h3 data-slot="text" data-label="Tjänst 2 – rubrik">Nybyggnation</h3><p data-slot="text" data-label="Tjänst 2 – beskrivning">Villor, garage och attefallshus från grund till nyckel.</p></div>
-      <div class="service"><div class="icon">📐</div><h3 data-slot="text" data-label="Tjänst 3 – rubrik">Projektledning</h3><p data-slot="text" data-label="Tjänst 3 – beskrivning">Vi samordnar alla hantverkare så du slipper.</p></div>
+      <div class="service"><div class="icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg></div><h3 data-slot="text" data-label="Tjänst 1 – rubrik">Renovering</h3><p data-slot="text" data-label="Tjänst 1 – beskrivning">Kök, badrum och helrenoveringar med hög finish.</p></div>
+      <div class="service"><div class="icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4.5 19.5 9.5"/><path d="M12 7l5 5"/><path d="M13.2 5.8 9 4l-1.5 1.5 3.2 3.2"/><path d="M14.5 10.5 5 20l-1-1 9.5-9.5"/></svg></div><h3 data-slot="text" data-label="Tjänst 2 – rubrik">Nybyggnation</h3><p data-slot="text" data-label="Tjänst 2 – beskrivning">Villor, garage och attefallshus från grund till nyckel.</p></div>
+      <div class="service"><div class="icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V4l16 16H4z"/><path d="M8 16v-4.5l4.5 4.5H8z"/><path d="M4 8h2M4 12h2"/></svg></div><h3 data-slot="text" data-label="Tjänst 3 – rubrik">Projektledning</h3><p data-slot="text" data-label="Tjänst 3 – beskrivning">Vi samordnar alla hantverkare så du slipper.</p></div>
     </div>
   </div>
 </section>
