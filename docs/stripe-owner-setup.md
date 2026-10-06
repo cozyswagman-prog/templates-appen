@@ -12,6 +12,8 @@ pwsh -NoProfile -File tools/stripe-setup.ps1 -Config "SÖKVÄG/TILL/wrangler-api
 Driftmappens `stripe-setup.ps1` är en identisk kopia och kan köras utan `-Config`
 när `wrangler-api.toml` finns bredvid skriptet. Verktyget använder befintlig Wrangler
 i `%TEMP%/tw-prov`; ägaren ska redan ha godkänt Cloudflare-inloggningen.
+Skriptet startar Wrangler i konfigurationsfilens mapp oavsett var terminalen står.
+Det hindrar att en projektcache i användarens hemmapp skymmer den sparade inloggningen.
 
 Skapa en begränsad live-nyckel i Stripe: Write för Checkout Sessions, Customer portal,
 Customers och Webhook Endpoints; Read för Products och Prices. Klistra bara in den
@@ -43,8 +45,9 @@ abonnemangslivscykeln måste fortfarande verifieras separat; namnlistan bevisar 
 att Stripe har levererat någon händelse.
 
 Lokala tester: `node --test tests/stripe-setup.test.cjs` (kräver PowerShell 7).
-20 fall med simulerad Stripe/Cloudflare inklusive ett riktigt lokalt barnprocesstest
-av loggkontroller och undertryckning av råa fel. Inga riktiga hemligheter används.
+21 fall med simulerad Stripe/Cloudflare inklusive riktiga lokala barnprocesstester
+av loggkontroller, undertryckning av råa fel och rätt arbetsmapp. Inga riktiga
+hemligheter används.
 
 Referenser: [webhook-endpoints](https://docs.stripe.com/api/webhook_endpoints),
 [API-versioner](https://docs.stripe.com/api/versioning).

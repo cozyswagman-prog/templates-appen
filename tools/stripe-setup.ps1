@@ -26,6 +26,10 @@ function Invoke-SetupWrangler {
   $process = [Diagnostics.Process]::new()
   try {
     $info = [Diagnostics.ProcessStartInfo]::new('node')
+    $configPath = (Resolve-Path -LiteralPath $ConfigFile -ErrorAction Stop).ProviderPath
+    # Do not inherit the owner's home directory: Wrangler's project cache there
+    # would become a legacy global config directory and hide the saved login.
+    $info.WorkingDirectory = [IO.Path]::GetDirectoryName($configPath)
     $info.UseShellExecute = $false
     $info.CreateNoWindow = $true
     $info.RedirectStandardInput = $true
@@ -35,9 +39,9 @@ function Invoke-SetupWrangler {
     $info.Environment['WRANGLER_LOG_SANITIZE'] = 'true'
     $info.Environment['WRANGLER_SEND_METRICS'] = 'false'
     $info.Environment['CI'] = 'true'
-    $info.ArgumentList.Add($Cli)
+    $info.ArgumentList.Add((Resolve-Path -LiteralPath $Cli -ErrorAction Stop).ProviderPath)
     foreach ($arg in $Arguments) { $info.ArgumentList.Add($arg) }
-    $info.ArgumentList.Add('--config'); $info.ArgumentList.Add($ConfigFile)
+    $info.ArgumentList.Add('--config'); $info.ArgumentList.Add($configPath)
     $process.StartInfo = $info
     $null = $process.Start()
     $stdout = $process.StandardOutput.ReadToEndAsync()
@@ -74,7 +78,7 @@ function Invoke-SetupStripe {
 
 function Get-SetupSecretNames([string]$Cli, [string]$ConfigFile) {
   try { $items = @(Invoke-SetupWrangler -Cli $Cli -ConfigFile $ConfigFile -Arguments @('secret', 'list') | ConvertFrom-Json -ErrorAction Stop) }
-  catch { Stop-TemplatesSetup 'Kunde inte verifiera Workern och hemligheternas namn. Kör Cloudflare-inloggningen först.' }
+  catch { Stop-TemplatesSetup 'Kunde inte verifiera Workern och hemligheternas namn. Kontrollera Cloudflare-inloggningen och åtkomsten till templates-api.' }
   return @($items | ForEach-Object { if ($_.name -notmatch '^[A-Z][A-Z0-9_]*$') { Stop-TemplatesSetup 'Oväntat svar från Cloudflare.' }; $_.name })
 }
 

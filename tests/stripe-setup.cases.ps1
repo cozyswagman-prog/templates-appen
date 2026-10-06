@@ -115,6 +115,17 @@ process.stdin.on('end', () => {
   try { Invoke-SetupWrangler -Cli $cliFile -ConfigFile $configFile -Arguments @('fail') -InputText $script:fakeSecret } catch { $caught=$_.Exception.Message }
   Assert ($caught -and -not $caught.Contains($script:fakeSecret)) 'Child failure must be sanitized'
   $script:results += @{name='real-child-process-redaction-and-log-controls';status='PASS'}
+  # The owner can launch from their home directory. Wrangler must use the config
+  # directory, or its project cache can shadow its global OAuth/keyring config.
+  @'
+const path = require('node:path');
+const config = process.argv[process.argv.indexOf('--config') + 1];
+if (process.cwd().toLowerCase() !== path.dirname(config).toLowerCase()) process.exit(3);
+console.log('[]');
+'@ | Set-Content -LiteralPath $cliFile
+  $names = @(Get-SetupSecretNames $cliFile $configFile)
+  Assert ($names.Count -eq 0) 'Worker preflight must run from the configuration directory'
+  $script:results += @{name='real-child-process-config-working-directory';status='PASS'}
   [Console]::WriteLine(($script:results | ConvertTo-Json -Compress))
 } finally {
   # Only remove this test's exact fresh directory under the OS temp directory.
