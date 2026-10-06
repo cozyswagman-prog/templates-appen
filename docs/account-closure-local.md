@@ -67,6 +67,9 @@ Storage-tjänsten; en verklig implementation måste använda Storage API.
 4. Testa Supabase Auth/Storage API och Cloudflare med två syntetiska konton i en
    separat godkänd tjänst. Prova verkligt parallella anslutningar: PGlites
    enkelanslutning bevisar inte låsbeteende under verklig samtidighet.
+   Supabase-adapter med riktiga SDK-anrop mot lokala testtjänster och SQL samt
+   kombinerat avbrottsprov med D1 finns nu; se `account-closure-supabase-local.md`.
+   Detta ersätter inte det separata verkliga tjänsteprovet.
 5. Verifiera klientens felbesked för `PT423` före eventuell aktivering.
 
 Supabase dokumenterar att redan utfärdade JWT-token kan leva till sin utgång

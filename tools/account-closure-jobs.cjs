@@ -14,9 +14,9 @@ function normalizeScope(ownerId, scope) {
     return [...values].sort();
   };
   return {
-    projectIds: list('projectIds', v => /^[a-zA-Z0-9_-]{1,128}$/.test(v)),
+    projectIds: list('projectIds', v => /^[a-zA-Z0-9_-]{1,100}$/.test(v)),
     siteIds: list('siteIds', v => /^[a-z0-9][a-z0-9-]{2,62}$/.test(v)),
-    storageObjects: list('storageObjects', v => v.startsWith(ownerId + '/') && /^[a-f0-9]{64}(?:-[a-f0-9-]+)?\.(?:png|jpg|jpeg|webp)$/.test(v.slice(ownerId.length + 1)))
+    storageObjects: list('storageObjects', v => v.startsWith(ownerId + '/') && /^[a-f0-9]{64}(?:-[a-f0-9]{32})?\.(?:png|jpeg|webp|gif)$/.test(v.slice(ownerId.length + 1)))
   };
 }
 function freeze(value) {
