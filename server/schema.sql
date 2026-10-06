@@ -8,3 +8,5 @@ create table if not exists sites (
   active_version text,
   revision integer not null default 0 check (revision >= 0)
 );
+-- Piloten: en sajt per konto, även om två flikar skapar samtidigt. Sajter utan ägare (prov) undantas.
+create unique index if not exists sites_one_per_owner on sites (owner_id);

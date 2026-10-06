@@ -153,5 +153,11 @@ window.Accounts = (function () {
       } else note('Kontotjänsten kunde inte startas. Du kan fortfarande arbeta på den här enheten.');
     }
   }
-  return { get store() { return store; }, init, subscribe(fn) { listeners.add(fn); } };
+  // Kundens aktuella inloggning för appens egna API-anrop (publicering). Skickas bara till konfigurerad tjänst.
+  async function accessToken() {
+    if (!client || !store.user) return null;
+    const { data, error } = await client.auth.getSession();
+    return !error && data.session && data.session.user.id === store.user.id ? data.session.access_token : null;
+  }
+  return { get store() { return store; }, init, subscribe(fn) { listeners.add(fn); }, accessToken };
 })();

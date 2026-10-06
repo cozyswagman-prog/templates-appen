@@ -26,6 +26,22 @@ besökare ─▶ kundens värdnamn ─▶ aktiv version ─▶ fil (bara filnamn
 - **Projektet valideras före rendering:** känd mall, bara textfält, och bilder bara som inbäddad
   PNG/JPEG/WebP/GIF (SVG och bildreferenser till kontot avvisas). Kundtext publiceras som text.
 
+## Publicera i appen
+
+När `publishUrl` i `js/cloud-config.js` pekar på publiceringstjänsten och kunden är inloggad, visas
+**Mer → Publicera på nätet…** i editorn (`js/publish-client.js` och dialogen `#publish-dialog`):
+
+1. Första gången väljer kunden en adress, `<adress>.<SITES_DOMAIN>`. Förslaget görs från projektnamnet.
+   Adressen kan inte bytas under piloten, och kontot får en sajt.
+2. **Publicera** sparar först eventuella osparade ändringar och publicerar sedan den sparade versionen.
+   Dialogen visar adress, tid och versionsnummer samt en knapp till hemsidan. Förra versionen visas tills
+   den nya är klar.
+3. Fel visas på svenska: upptagen eller reserverad adress, inloggning, konflikt med en annan flik och
+   nätfel. Vid nätfel står det att förra versionen fortfarande visas.
+
+API: `GET /api/sites` (egna sajter och domän) och `POST /api/sites { slug }`, med regeln en sajt per konto
+även i databasen (`sites_one_per_owner`), samt `POST /api/publish` nedan.
+
 ## Publicering med kundens inloggning
 
 `POST https://<PUBLISH_HOST>/api/publish` med `{ siteId, projectId, expectedRevision? }` och kundens
@@ -62,8 +78,9 @@ driftsättning. Integrationsprovet i workerd (Miniflare, R2 och D1 simulerade) o
 
 ## Gränser – inte klart för drift
 
-- **Abonnemang (T07)** och **skapande av sajt med ägare och värdnamn** är inte byggda. Styrgränssnittet är bara för prov.
-- **Appen har ingen Publicera-knapp än.** API:t är provat med simulerad Supabase, inte med riktiga konton.
+- **Abonnemang (T07)** är inte byggt. Styrgränssnittet är bara för prov.
+- **Lokal publiceringsserver:** Publicera-flödet är provat mot riktiga Supabase-testkonton, men med
+  publiceringsservern lokalt (workerd) och adresser under `sites.test`, som inte nås från internet.
 - **Bildkontroll:** varje bild kontrolleras mot sin innehållsnyckel, MIME-typ och storlek. Sharp-omkodningen
   (metadata, orientering, max 1600 px) fungerar inte i Workers och återstår.
 - **Kostnad och gränser:** rendering av en tresidig sajt kräver ungefär 13 ms processortid, vilket är mer än

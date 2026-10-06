@@ -191,7 +191,74 @@
     document.getElementById('version-create').textContent = 'Skapa granskningsversion';
     document.getElementById('version-close').disabled = false;
     document.getElementById('btn-version').hidden = !localVersions || store().mode !== 'local';
+    updatePublishButton();
   }
+
+  // ---------- Publicera på nätet (inloggat konto + konfigurerad publiceringstjänst) ----------
+  const publishDialog = document.getElementById('publish-dialog');
+  const publishCfg = window.TEMPLATES_CLOUD || {};
+  const publishClient = window.createPublishClient && publishCfg.publishUrl
+    ? window.createPublishClient({ baseUrl: publishCfg.publishUrl, getToken: () => window.Accounts.accessToken() }) : null;
+  let publishSite = null, publishBusy = false, publishRequest = 0;
+  const publishEl = id => document.getElementById(id);
+  function updatePublishButton() { publishEl('btn-publish').hidden = !publishClient || store().mode !== 'cloud' || !store().user; }
+  function publishMessage(text, isError = false) {
+    publishEl('publish-status').textContent = isError ? '' : text;
+    publishEl('publish-error').hidden = !isError; publishEl('publish-error').textContent = isError ? text : '';
+  }
+  async function openPublish() {
+    if (!publishClient || !currentProject || imageBusy || publishBusy) return;
+    const request = ++publishRequest; publishSite = null;
+    document.querySelector('.editor-more').open = false;
+    publishEl('publish-site-form').hidden = true; publishEl('publish-open').hidden = true;
+    const confirm = publishEl('publish-confirm'); confirm.hidden = false; confirm.disabled = true; confirm.textContent = 'Publicera';
+    publishMessage('Hämtar din hemsidas adress…');
+    publishDialog.showModal();
+    try {
+      const { site, domain } = await publishClient.status();
+      if (request !== publishRequest) return;
+      publishSite = site;
+      if (site) publishMessage(site.active ? 'Din hemsida finns på ' + site.url + ' – den nya versionen ersätter den när allt är klart.' : 'Din adress är ' + site.url + '. Inget är publicerat ännu.');
+      else {
+        publishEl('publish-site-form').hidden = false;
+        publishEl('publish-slug').value = window.suggestPublishSlug(currentProject.name);
+        publishEl('publish-domain').textContent = '.' + domain;
+        confirm.textContent = 'Skapa adress och publicera';
+        publishMessage('Välj adressen till din hemsida.');
+      }
+      confirm.disabled = false;
+    } catch (error) { if (request === publishRequest) publishMessage(error.message, true); }
+  }
+  publishEl('btn-publish').addEventListener('click', openPublish);
+  publishEl('publish-confirm').addEventListener('click', async () => {
+    if (publishBusy || !currentProject || !publishClient) return;
+    const request = publishRequest, project = currentProject, confirm = publishEl('publish-confirm');
+    publishBusy = true; confirm.disabled = true; publishEl('publish-close').disabled = true;
+    try {
+      // Servern publicerar den sparade versionen på kontot, så osparade ändringar sparas först.
+      if (dirty || !project.cloudRevision) {
+        publishMessage('Sparar dina ändringar…');
+        if (!await saveProject(false) || currentProject !== project || dirty) throw new Error('Projektet kunde inte sparas. Inget har publicerats.');
+      }
+      if (!publishSite) {
+        publishMessage('Skapar din adress…');
+        publishSite = await publishClient.createSite(publishEl('publish-slug').value.trim().toLowerCase());
+        publishEl('publish-site-form').hidden = true;
+      }
+      publishMessage('Publicerar… Förra versionen visas tills den nya är klar.');
+      const result = await publishClient.publish(publishSite.siteId, project.id, publishSite.revision);
+      if (request !== publishRequest) return;
+      publishSite = { ...publishSite, revision: result.revision, active: result.versionId };
+      publishMessage('Publicerad ' + new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) + ' på ' + result.url + ' (version ' + result.revision + ').');
+      const open = publishEl('publish-open'); open.href = result.url; open.hidden = false; confirm.hidden = true;
+    } catch (error) {
+      if (request !== publishRequest) return;
+      publishMessage(error.message, true);
+      if (error.code === 'conflict') { try { publishSite = (await publishClient.status()).site; } catch { /* visa felet som det är */ } }
+    } finally { publishBusy = false; confirm.disabled = false; publishEl('publish-close').disabled = false; }
+  });
+  publishEl('publish-close').addEventListener('click', () => { if (!publishBusy) { publishRequest++; publishDialog.close(); } });
+  publishDialog.addEventListener('cancel', event => { if (publishBusy) event.preventDefault(); else publishRequest++; });
   const recovery = window.createDraftRecovery(() => window.sessionStorage);
   let recoveryReady = false, draftScope = null, recoveryOK = false, saveConflict = false;
   const storageScope = () => store().mode === 'cloud' ? 'cloud:' + store().user.id : 'local';

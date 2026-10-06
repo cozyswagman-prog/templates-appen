@@ -29,7 +29,16 @@ export function d1Sites(db) {
       const r = await db.prepare('update sites set active_version = ?, revision = revision + 1 where id = ? and revision = ?').bind(versionId, id, expected).run();
       return r.meta.changes === 1;
     },
-    create: (id, host, ownerId = null) => db.prepare('insert into sites (id, host, owner_id, revision) values (?, ?, ?, 0)').bind(id, host, ownerId).run()
+    listByOwner: async ownerId => ((await db.prepare('select id, host, owner_id, active_version, revision from sites where owner_id = ? order by id').bind(ownerId).all()).results || []).map(row),
+    async create(id, host, ownerId = null) {
+      try { await db.prepare('insert into sites (id, host, owner_id, revision) values (?, ?, ?, 0)').bind(id, host, ownerId).run(); }
+      catch (error) {
+        const msg = String(error.message);
+        if (/sites\.owner_id|sites_one_per_owner/i.test(msg)) throw Object.assign(new Error('Kontot har redan en sajt.'), { code: 'site-exists' });
+        if (/UNIQUE|constraint/i.test(msg)) throw Object.assign(new Error('Adressen är upptagen.'), { code: 'taken' });
+        throw error;
+      }
+    }
   };
 }
 async function equalSecret(a, b) {

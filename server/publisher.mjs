@@ -144,12 +144,18 @@ export function memoryStores() {
   const sites = {
     async get(siteId) { const s = siteRows.get(siteId); return s ? { ...s } : null; },
     async byHost(host) { for (const s of siteRows.values()) if (s.host === host) return { ...s }; return null; },
+    async listByOwner(ownerId) { return [...siteRows.values()].filter(s => s.ownerId === ownerId).map(s => ({ ...s })); },
     async swap(siteId, expectedRevision, versionId) {
       const s = siteRows.get(siteId);
       if (!s || s.revision !== expectedRevision) return false;
       s.active = versionId; s.revision++; return true;
     },
-    create(siteId, host, ownerId = null) { if (!SITE_ID.test(siteId)) throw fail('invalid', 'Ogiltigt sajt-id.'); siteRows.set(siteId, { siteId, host, ownerId, active: null, revision: 0 }); }
+    async create(siteId, host, ownerId = null) {
+      if (!SITE_ID.test(siteId)) throw fail('invalid', 'Ogiltigt sajt-id.');
+      if (siteRows.has(siteId) || [...siteRows.values()].some(s => s.host === host)) throw fail('taken', 'Adressen är upptagen.');
+      if (ownerId && [...siteRows.values()].some(s => s.ownerId === ownerId)) throw fail('site-exists', 'Kontot har redan en sajt.');
+      siteRows.set(siteId, { siteId, host, ownerId, active: null, revision: 0 });
+    }
   };
   return { bucket, sites };
 }

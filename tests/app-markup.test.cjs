@@ -7,7 +7,7 @@ test('Artifact keeps the same app structure and scripts without website/PWA wrap
   const fragment = html('artifact.html'), artifact = parseHTML(fragment).document;
   assert.deepEqual([...index.querySelectorAll('[id]')].map(el => el.id), [...artifact.querySelectorAll('[id]')].map(el => el.id));
   assert.deepEqual([...index.querySelectorAll('script[src]')].map(el => el.getAttribute('src')), [...artifact.querySelectorAll('script[src]')].map(el => el.getAttribute('src')));
-  for (const id of ['view-gallery', 'view-editor', 'leave-dialog', 'session-dialog', 'export-dialog']) {
+  for (const id of ['view-gallery', 'view-editor', 'leave-dialog', 'session-dialog', 'export-dialog', 'publish-dialog']) {
     assert.equal(index.getElementById(id).outerHTML, artifact.getElementById(id).outerHTML);
   }
   assert.ok(!/serviceWorker\.register|<!DOCTYPE|<html[\s>]/i.test(fragment));
