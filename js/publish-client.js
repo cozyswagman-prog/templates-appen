@@ -35,6 +35,12 @@
         if (!/^https:\/\/checkout\.stripe\.com\//.test(url || '')) throw Object.assign(new Error('Betalsidan kunde inte öppnas. Försök igen.'), { code: 'checkout' });
         return url;
       },
+      // Stripes kundportal: säga upp, återuppta, byta kort och hämta kvitton.
+      async portal() {
+        const { url } = await call('POST', '/api/billing/portal', {});
+        if (!/^https:\/\/billing\.stripe\.com\//.test(url || '')) throw Object.assign(new Error('Abonnemangssidan kunde inte öppnas. Försök igen.'), { code: 'portal' });
+        return url;
+      },
       createSite: slug => call('POST', '/api/sites', { slug }),
       publish: (siteId, projectId, expectedRevision) => call('POST', '/api/publish', { siteId, projectId, expectedRevision })
     };

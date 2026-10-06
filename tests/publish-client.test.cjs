@@ -43,3 +43,11 @@ test('Subscription: status tells when a plan is required, checkout only returns 
   await assert.rejects(client(async () => Response.json({ url: 'https://evil.example/pay' })).c.checkout(), { code: 'checkout' });
   await assert.rejects(client(async () => Response.json({ code: 'plan', error: 'Publicering kräver ett aktivt abonnemang.' }, { status: 402 })).c.publish('k', 'p', 0), e => e.code === 'plan' && /abonnemang/.test(e.message));
 });
+
+test('Subscription portal only returns a Stripe billing address', async () => {
+  const ok = client(async () => Response.json({ url: 'https://billing.stripe.com/p/session/test_1' }));
+  assert.equal(await ok.c.portal(), 'https://billing.stripe.com/p/session/test_1');
+  assert.equal(ok.calls[0].init.method, 'POST'); assert.ok(ok.calls[0].url.endsWith('/api/billing/portal'));
+  await assert.rejects(client(async () => Response.json({ url: 'https://checkout.stripe.com/c/pay/x' })).c.portal(), { code: 'portal' });
+  await assert.rejects(client(async () => Response.json({ code: 'no-customer', error: 'Det finns inget abonnemang att hantera ännu.' }, { status: 409 })).c.portal(), { code: 'no-customer' });
+});

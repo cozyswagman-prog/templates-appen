@@ -4,6 +4,8 @@
 //     och en avslutad prenumeration kan inte bli aktiv igen av en sen händelse.
 //   - Rätten avgörs av prenumerationens status: active/trialing (och past_due medan Stripe försöker dra
 //     betalningen igen) ger rätt; allt annat nekar. Ett kvitto i webbläsaren räknas aldrig som betalning.
+//   - Förnyelse syns som customer.subscription.updated med ny period. Återbetalningar (charge.refunded) ändrar
+//     inget: rätten följer bara prenumerationens status, så en återbetalning utan uppsägning behåller rätten.
 //   store: claimEvent({id,type,created}) -> true om ny (atomiskt), finishEvent(id, result), releaseEvent(id),
 //          getSubscription(id), putSubscription(row) -> true om skriven (skriver aldrig över nyare eller avslutad),
 //          linkCheckout(subscriptionId, userId), linkedUser(subscriptionId), subscriptionsForUser(userId)
@@ -93,16 +95,34 @@ export function memoryBillingStore() {
 }
 
 // Stripe Checkout för abonnemang: kunden betalar på Stripes egen sida; rätten ges först av webhooken.
+const validKey = key => /^(sk|rk)_(test|live)_/.test(key || '');
+async function stripePost(request, secretKey, path, form, pattern, message) {
+  const r = await request('https://api.stripe.com/v1/' + path, { method: 'POST', headers: { Authorization: 'Bearer ' + secretKey, 'Content-Type': 'application/x-www-form-urlencoded', 'Idempotency-Key': crypto.randomUUID() }, body: form.toString() });
+  const data = await r.json().catch(() => null);
+  if (!r.ok || !data?.url || !pattern.test(data.url)) throw fail('upstream', message);
+  return data.url;
+}
+// En kund som haft abonnemang förut återanvänder sin Stripe-kund (customerId), så kvitton och kort hålls samman.
 export function createStripeCheckout({ secretKey, priceId, appOrigin, fetch: request = (...a) => fetch(...a) }) {
-  return async function checkout(userId, email) {
-    if (!secretKey || !/^sk_(test|live)_|^rk_(test|live)_/.test(secretKey) || !/^price_/.test(priceId || '')) throw fail('config', 'Abonnemang är inte konfigurerat.');
+  return async function checkout(userId, email, customerId = null) {
+    if (!validKey(secretKey) || !/^price_/.test(priceId || '')) throw fail('config', 'Abonnemang är inte konfigurerat.');
     const form = new URLSearchParams({ mode: 'subscription', 'line_items[0][price]': priceId, 'line_items[0][quantity]': '1',
       success_url: appOrigin + '/?betalning=klar', cancel_url: appOrigin + '/?betalning=avbruten', client_reference_id: userId,
       'subscription_data[metadata][user_id]': userId, locale: 'sv' });
-    if (email) form.set('customer_email', email);
-    const r = await request('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { Authorization: 'Bearer ' + secretKey, 'Content-Type': 'application/x-www-form-urlencoded', 'Idempotency-Key': crypto.randomUUID() }, body: form.toString() });
-    const data = await r.json().catch(() => null);
-    if (!r.ok || !data?.url || !/^https:\/\/checkout\.stripe\.com\//.test(data.url)) throw fail('upstream', 'Betalsidan kunde inte öppnas. Försök igen.');
-    return data.url;
+    if (/^cus_/.test(customerId || '')) form.set('customer', customerId);
+    else if (email) form.set('customer_email', email);
+    return stripePost(request, secretKey, 'checkout/sessions', form, /^https:\/\/checkout\.stripe\.com\//, 'Betalsidan kunde inte öppnas. Försök igen.');
+  };
+}
+
+// Stripes kundportal: kunden säger upp, återupptar, byter kort och hämtar kvitton på Stripes egen sida.
+// Ändringarna når oss bara som signerade händelser. Portalen ställs in i Stripes kontrollpanel (eller configurationId).
+export function createStripePortal({ secretKey, appOrigin, configurationId = null, fetch: request = (...a) => fetch(...a) }) {
+  return async function portal(customerId) {
+    if (!validKey(secretKey)) throw fail('config', 'Abonnemang är inte konfigurerat.');
+    if (!/^cus_/.test(customerId || '')) throw fail('no-customer', 'Det finns inget abonnemang att hantera ännu.');
+    const form = new URLSearchParams({ customer: customerId, return_url: appOrigin + '/?betalning=hanterat', locale: 'sv' });
+    if (/^bpc_/.test(configurationId || '')) form.set('configuration', configurationId);
+    return stripePost(request, secretKey, 'billing_portal/sessions', form, /^https:\/\/billing\.stripe\.com\//, 'Abonnemangssidan kunde inte öppnas. Försök igen.');
   };
 }

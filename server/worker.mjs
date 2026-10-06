@@ -2,7 +2,8 @@
 //   Bindningar: SITES (R2-bucket), DB (D1, schema i server/schema.sql),
 //   PUBLISH_HOST + APP_ORIGIN + SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY för det inloggade API:t,
 //   abonnemang: STRIPE_WEBHOOK_SECRET (whsec_, hemlighet), STRIPE_SECRET_KEY (hemlighet), STRIPE_PRICE_ID,
-//   STRIPE_PRODUCT_ID (valfri), REQUIRE_PLAN='1' för att kräva aktivt abonnemang vid publicering,
+//   STRIPE_PRODUCT_ID (valfri), STRIPE_PORTAL_CONFIGURATION (valfri, bpc_), REQUIRE_PLAN='1' för att kräva
+//   aktivt abonnemang vid publicering,
 //   CONTROL_HOST + CONTROL_TOKEN (hemlighet) för provets styrgränssnitt, ALLOW_FAULTS='1' endast lokalt.
 // Besökare: GET/HEAD på kundens värdnamn -> aktiv version. Kunder publicerar via PUBLISH_HOST/api/publish
 // med sin egen inloggning; styrgränssnittet är bara för lokala prov och ska inte konfigureras i drift.
@@ -10,7 +11,7 @@ import { createPublisher } from './publisher.mjs';
 import { renderSite } from './render-worker.mjs';
 import { createAccountSource } from './account-source.mjs';
 import { handlePublishRequest } from './publish-api.mjs';
-import { createBilling, createStripeCheckout } from './billing.mjs';
+import { createBilling, createStripeCheckout, createStripePortal } from './billing.mjs';
 
 export function r2Bucket(binding) {
   return {
@@ -81,7 +82,8 @@ export default {
       const source = createAccountSource({ url: env.SUPABASE_URL, publishableKey: env.SUPABASE_PUBLISHABLE_KEY });
       const billing = env.STRIPE_WEBHOOK_SECRET ? createBilling({ store: d1Billing(env.DB), productId: env.STRIPE_PRODUCT_ID || null }) : null;
       const checkout = env.STRIPE_SECRET_KEY ? createStripeCheckout({ secretKey: env.STRIPE_SECRET_KEY, priceId: env.STRIPE_PRICE_ID, appOrigin: env.APP_ORIGIN }) : null;
-      return handlePublishRequest(request, { env, sites, source, billing, checkout, publisher: createPublisher({ bucket, sites, render: renderSite }) });
+      const portal = env.STRIPE_SECRET_KEY ? createStripePortal({ secretKey: env.STRIPE_SECRET_KEY, appOrigin: env.APP_ORIGIN, configurationId: env.STRIPE_PORTAL_CONFIGURATION || null }) : null;
+      return handlePublishRequest(request, { env, sites, source, billing, checkout, portal, publisher: createPublisher({ bucket, sites, render: renderSite }) });
     }
     if (env.CONTROL_HOST && host === env.CONTROL_HOST) {
       const token = (request.headers.get('Authorization') || '').replace(/^Bearer /, '');

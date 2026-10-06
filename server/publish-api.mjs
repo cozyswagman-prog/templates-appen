@@ -3,6 +3,7 @@
 //   POST /api/sites    { slug }     -> skapar kundens sajt på <slug>.<SITES_DOMAIN> (en per konto i piloten)
 //   POST /api/publish  { siteId, projectId, expectedRevision }
 //   POST /api/billing/checkout      -> adress till Stripes betalsida för abonnemang
+//   POST /api/billing/portal        -> adress till Stripes kundportal (säga upp, byta kort, kvitton)
 //   POST /api/stripe/webhook        -> Stripe-händelser (ingen inloggning; signaturen i Stripe-Signature avgör)
 // Bara appens egen origin får anropa (CORS), bara sajtens ägare får publicera, och projektet hämtas
 // med kundens egen behörighet. Okänd sajt och annans sajt ger samma svar, så sajter kan inte kartläggas.
@@ -14,7 +15,7 @@ const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 const RESERVED = new Set(['www', 'api', 'app', 'admin', 'publish', 'control', 'mail', 'smtp', 'ftp', 'static', 'cdn', 'assets', 'templates', 'support', 'hjalp', 'help', 'status', 'test', 'demo']);
 const view = site => ({ siteId: site.siteId, host: site.host, url: 'https://' + site.host + '/', active: site.active, revision: site.revision });
 
-export async function handlePublishRequest(request, { env, sites, publisher, source, billing = null, checkout = null }) {
+export async function handlePublishRequest(request, { env, sites, publisher, source, billing = null, checkout = null, portal = null }) {
   const path = new URL(request.url).pathname;
   // Stripe anropar server-till-server: ingen origin eller inloggning, bara signaturen räknas.
   if (path === '/api/stripe/webhook') {
@@ -34,18 +35,26 @@ export async function handlePublishRequest(request, { env, sites, publisher, sou
   const json = (status, data) => new Response(JSON.stringify(data), { status, headers: { ...cors, 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
   if (origin && !allowed) return json(403, { error: 'Fel ursprung.', code: 'origin' });
   if (request.method === 'OPTIONS') return new Response(null, { status: allowed ? 204 : 403, headers: cors });
-  const route = { 'GET /api/sites': 'list', 'POST /api/sites': 'create', 'POST /api/publish': 'publish', 'POST /api/billing/checkout': 'checkout' }[request.method + ' ' + path];
-  if (!route) return json(['/api/sites', '/api/publish', '/api/billing/checkout'].includes(path) ? 405 : 404, { error: 'Okänd åtgärd.', code: 'not-found' });
+  const route = { 'GET /api/sites': 'list', 'POST /api/sites': 'create', 'POST /api/publish': 'publish', 'POST /api/billing/checkout': 'checkout', 'POST /api/billing/portal': 'portal' }[request.method + ' ' + path];
+  if (!route) return json(['/api/sites', '/api/publish', '/api/billing/checkout', '/api/billing/portal'].includes(path) ? 405 : 404, { error: 'Okänd åtgärd.', code: 'not-found' });
   const token = (request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
   try {
     const user = await source.getUser(token);
     if (!user) return json(401, { error: 'Logga in igen för att publicera.', code: 'auth' });
-    const planOf = async () => { if (!billing) return null; const p = await billing.plan(user.id); return { active: p.active, status: p.status, cancelAtPeriodEnd: !!p.cancelAtPeriodEnd, currentPeriodEnd: p.currentPeriodEnd ?? null }; };
+    // Stripes kund-id stannar på servern; webbläsaren får bara veta om det finns något att hantera.
+    const planOf = async () => { if (!billing) return null; const p = await billing.plan(user.id); return { active: p.active, status: p.status, cancelAtPeriodEnd: !!p.cancelAtPeriodEnd, currentPeriodEnd: p.currentPeriodEnd ?? null, manageable: !!(portal && p.customerId) }; };
     if (route === 'list') return json(200, { sites: (await sites.listByOwner(user.id)).map(s => view(s)), domain: env.SITES_DOMAIN || null, planRequired: env.REQUIRE_PLAN === '1', plan: await planOf() });
     if (route === 'checkout') {
       if (!billing || !checkout) return json(503, { error: 'Abonnemang är inte konfigurerat.', code: 'config' });
-      if ((await billing.plan(user.id)).active) return json(409, { error: 'Du har redan ett aktivt abonnemang.', code: 'already-active' });
-      return json(200, { url: await checkout(user.id, user.email || null) });
+      const p = await billing.plan(user.id);
+      if (p.active) return json(409, { error: 'Du har redan ett aktivt abonnemang.', code: 'already-active' });
+      return json(200, { url: await checkout(user.id, user.email || null, p.customerId || null) });
+    }
+    if (route === 'portal') {
+      if (!billing || !portal) return json(503, { error: 'Abonnemang är inte konfigurerat.', code: 'config' });
+      const { customerId } = await billing.plan(user.id);
+      if (!customerId) return json(409, { error: 'Det finns inget abonnemang att hantera ännu.', code: 'no-customer' });
+      return json(200, { url: await portal(customerId) });
     }
     let body; try { body = await request.json(); } catch { return json(400, { error: 'Ogiltig begäran.', code: 'invalid' }); }
     if (route === 'create') {
@@ -72,7 +81,7 @@ export async function handlePublishRequest(request, { env, sites, publisher, sou
     const result = await publisher.publish(siteId, loaded.project, { expectedRevision });
     return json(200, { ...result, projectRevision: loaded.revision, url: 'https://' + site.host + '/' });
   } catch (error) {
-    const status = { conflict: 409, invalid: 422, image: 422, incomplete: 502, upstream: 502, config: 503, 'unknown-site': 404 }[error.code] || 500;
+    const status = { conflict: 409, 'no-customer': 409, invalid: 422, image: 422, incomplete: 502, upstream: 502, config: 503, 'unknown-site': 404 }[error.code] || 500;
     return json(status, { error: status === 500 ? 'Publiceringen misslyckades. Föregående version visas fortfarande.' : error.message, code: error.code || 'error' });
   }
 }

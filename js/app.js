@@ -206,11 +206,26 @@
     publishEl('publish-status').textContent = isError ? '' : text;
     publishEl('publish-error').hidden = !isError; publishEl('publish-error').textContent = isError ? text : '';
   }
+  // Abonnemangets läge i klartext. Datum kommer från Stripe via servern (sekunder sedan 1970).
+  function showPlan(plan) {
+    const day = s => new Date(s * 1000).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+    const text = !plan || !plan.status ? ''
+      : plan.status === 'past_due' ? 'Senaste betalningen gick inte igenom. Stripe försöker igen – uppdatera betalkortet under Hantera abonnemang.'
+      : plan.active && plan.cancelAtPeriodEnd && plan.currentPeriodEnd ? 'Abonnemanget är uppsagt och upphör ' + day(plan.currentPeriodEnd) + '. Du kan publicera fram till dess.'
+      : plan.active && plan.currentPeriodEnd ? 'Abonnemanget är aktivt och förnyas ' + day(plan.currentPeriodEnd) + '.'
+      : plan.active ? 'Abonnemanget är aktivt.'
+      : plan.status === 'canceled' ? 'Ditt tidigare abonnemang har upphört.'
+      : plan.status === 'incomplete' ? 'Betalningen är inte klar ännu.'
+      : 'Abonnemanget är inte aktivt eftersom betalningen inte gick igenom.';
+    publishEl('publish-plan').textContent = text; publishEl('publish-plan').hidden = !text;
+    publishEl('publish-manage').hidden = !plan?.manageable;
+  }
   async function openPublish() {
     if (!publishClient || !currentProject || imageBusy || publishBusy) return;
     const request = ++publishRequest; publishSite = null;
     document.querySelector('.editor-more').open = false;
     publishEl('publish-site-form').hidden = true; publishEl('publish-open').hidden = true; publishEl('publish-subscribe').hidden = true;
+    showPlan(null);
     const confirm = publishEl('publish-confirm'); confirm.hidden = false; confirm.disabled = true; confirm.textContent = 'Publicera';
     publishMessage('Hämtar din hemsidas adress…');
     publishDialog.showModal();
@@ -218,6 +233,7 @@
       const { site, domain, planRequired, plan } = await publishClient.status();
       if (request !== publishRequest) return;
       publishSite = site;
+      showPlan(plan);
       if (planRequired && !plan?.active) {
         confirm.hidden = true; publishEl('publish-subscribe').hidden = false;
         publishMessage('Publicering ingår i abonnemanget. Betalningen görs på Stripes säkra sida, och du kan publicera så snart den är bekräftad.');
@@ -265,22 +281,24 @@
   });
   publishEl('publish-close').addEventListener('click', () => { if (!publishBusy) { publishRequest++; publishDialog.close(); } });
   publishDialog.addEventListener('cancel', event => { if (publishBusy) event.preventDefault(); else publishRequest++; });
-  publishEl('publish-subscribe').addEventListener('click', async () => {
+  // Till Stripes egna sidor (betalning eller kundportal). Osparade ändringar sparas först, eftersom sidan lämnas.
+  async function goToStripe(button, getUrl, opening) {
     if (publishBusy || !publishClient) return;
-    const button = publishEl('publish-subscribe');
     publishBusy = true; button.disabled = true; publishEl('publish-close').disabled = true;
     try {
       if (currentProject && dirty) {
         publishMessage('Sparar dina ändringar…');
-        if (!await saveProject(false) || dirty) throw new Error('Projektet kunde inte sparas. Spara innan du går till betalningen.');
+        if (!await saveProject(false) || dirty) throw new Error('Projektet kunde inte sparas. Spara innan du lämnar sidan.');
       }
-      publishMessage('Öppnar betalsidan hos Stripe…');
-      location.assign(await publishClient.checkout());
+      publishMessage(opening);
+      location.assign(await getUrl());
     } catch (error) {
       publishMessage(error.message, true);
       publishBusy = false; button.disabled = false; publishEl('publish-close').disabled = false;
     }
-  });
+  }
+  publishEl('publish-subscribe').addEventListener('click', () => goToStripe(publishEl('publish-subscribe'), () => publishClient.checkout(), 'Öppnar betalsidan hos Stripe…'));
+  publishEl('publish-manage').addEventListener('click', () => goToStripe(publishEl('publish-manage'), () => publishClient.portal(), 'Öppnar abonnemangssidan hos Stripe…'));
   // Tillbaka från Stripe: bara ett besked. Rätten att publicera ges av servern när Stripe bekräftat betalningen.
   // Beskedet visas när inloggningen är laddad, eftersom ett kontobyte rensar tidigare besked.
   (function paymentReturn() {
@@ -288,7 +306,9 @@
     if (!outcome) return;
     params.delete('betalning');
     history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '') + location.hash);
-    let message = outcome === 'klar' ? 'Tack! Abonnemanget aktiveras så snart Stripe har bekräftat betalningen. Det brukar ta någon minut.' : 'Betalningen avbröts. Inget har dragits.';
+    let message = { klar: 'Tack! Abonnemanget aktiveras så snart Stripe har bekräftat betalningen. Det brukar ta någon minut.',
+      avbruten: 'Betalningen avbröts. Inget har dragits.',
+      hanterat: 'Ändringar i abonnemanget syns här så snart Stripe har bekräftat dem.' }[outcome] || null;
     const show = () => { if (message) { const m = message; message = null; setTimeout(() => window.showToast(m), 0); } };
     window.Accounts.subscribe(show);
     setTimeout(show, 1500);
