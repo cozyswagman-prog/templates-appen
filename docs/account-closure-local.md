@@ -54,8 +54,10 @@ Storage-tjänsten; en verklig implementation måste använda Storage API.
    sessioner, redan pågående anrop och uppladdningar. Supabase-låset är lokalt
    för en databastransaktion och låser inte andra tjänster. En redan hämtad
    publiceringskopia eller utfärdad bildlänk kan finnas kvar.
-3. Implementera ett beständigt jobb med exakta ägar-/objektgränser, godkänd
-   omfattning, checkpoints, avbrottshantering, verifiering och återförsök.
+3. Lokal beständig jobbkoordinator med exakt omfattning, kontrollpunkter,
+   arbetslås, verifiering och begränsade återförsök finns nu; se
+   `account-closure-jobs-local.md`. Verkliga tjänsteadaptrar, samordnade spärrar,
+   schemaläggning och skyddad backup av jobb återstår.
    Domäner, Formspree, supportdata, finansiella bevarandebeslut och backupkopior
    måste hanteras särskilt. Globala faktureringshändelser saknar direkt konto-id
    i nuvarande schema och får inte raderas genom gissning.
