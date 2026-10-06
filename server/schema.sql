@@ -15,6 +15,14 @@ create table if not exists published_versions (
   site_id text not null references sites(id), version_id text not null,
   published_revision integer not null, primary key (site_id, version_id)
 );
+create index if not exists published_versions_order on published_versions (site_id, published_revision desc);
+-- A retirement claim blocks every future pointer switch before any file deletion.
+create table if not exists version_retirements (
+  site_id text not null references sites(id), version_id text not null,
+  completed integer not null default 0 check (completed in (0,1)),
+  primary key (site_id, version_id)
+);
+create index if not exists version_retirements_pending on version_retirements (completed, site_id, version_id);
 -- Safe upgrade: register the current live versions only, never unfinished uploads.
 insert or ignore into published_versions (site_id, version_id, published_revision)
   select id, active_version, revision from sites where active_version is not null;

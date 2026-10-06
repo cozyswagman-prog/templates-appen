@@ -23,7 +23,10 @@ fullständig oberoende säkerhetsgranskning av alla tidigare ändringar.
 
 ## Verifierat i den här genomgången
 
-- `npm test`: 172/172 PASS. De frysta renderingsproven för nio mallar är oförändrade.
+- Versionsstädningens uppföljning: `npm test` 177/177 PASS (baslinje 172/172).
+  De frysta renderingsproven för nio mallar är oförändrade.
+- Lokal workerd-städning med D1 och R2: aktiv plus fem, förhandsläge, samtidig
+  återställning, överlappande jobb och begränsad radering i flera omgångar PASS.
 - Publicerings-/API-/renderingsprov: 37/37 PASS.
 - Samma lokala workerd-prov före/efter: 27/27 PASS, inklusive tio D1-publiceringar.
   Median väggtid var 124,72 ms före och 119,39 ms efter. En sådan lokal mätning är
@@ -42,8 +45,10 @@ fullständig oberoende säkerhetsgranskning av alla tidigare ändringar.
 2. **CPU på gratisplanen:** tio riktiga publiceringar med molnets `cpuTime`/`outcome`
    saknas. Historiska mätningar över gränsen behöver följas upp; inga betalplansköp
    eller undantag från abonnemangskravet ingår i den här ändringen.
-3. **Versionsstädning:** aktiv version plus de senaste fem ska behållas. Automatisk
-   städning och hantering av ofullständiga uppladdningar återstår; lagringen växer.
+3. **Versionsstädning:** aktiv version plus fem andra publicerade versioner skyddas
+   av den nu lokalt verifierade städningen. Förhandsläge, raderingsspärrar och
+   begränsade återförsök finns för D1/R2. Aktivering i molnet och separat hantering
+   av ofullständiga uppladdningar återstår; se [städguiden](version-retention-local.md).
 4. **Bilder i Workers:** metadata, orientering och max 1600 px behöver en kompatibel
    lösning. Sharp i det lokala verktyget är ingen fungerande Worker-lösning.
 5. **Filstorlek:** D1-adaptern har redan ett fel för filer över 1,9 MB och API:t

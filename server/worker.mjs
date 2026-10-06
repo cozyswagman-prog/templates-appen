@@ -16,9 +16,12 @@ import { renderSite } from './render-worker.mjs';
 import { createAccountSource } from './account-source.mjs';
 import { handlePublishRequest } from './publish-api.mjs';
 import { createBilling, createStripeCheckout, createStripePortal } from './billing.mjs';
+import { cleanupVersions, d1Retention } from './version-retention.mjs';
 
 export function r2Bucket(binding) {
   return {
+    listKeys: async (prefix, limit) => (await binding.list({ prefix, limit })).objects.map(o => o.key),
+    deleteKeys: keys => binding.delete(keys),
     put: (key, bytes, { contentType, sha256 }) => binding.put(key, bytes, { httpMetadata: { contentType }, customMetadata: { sha256 }, sha256 }),
     async head(key) { const o = await binding.head(key); return o ? { size: o.size, sha256: o.customMetadata?.sha256 } : null; },
     async get(key) {
@@ -31,6 +34,9 @@ export function r2Bucket(binding) {
 const D1_MAX_FILE = 1900000;
 export function d1Bucket(db) {
   return {
+    // Range bounds use the primary-key index; no wildcard can cross a version prefix.
+    listKeys: async (prefix, limit) => (await db.prepare('select key from site_files where key >= ? and key < ? order by key limit ?').bind(prefix, prefix + '\uffff', limit).all()).results.map(r => r.key),
+    deleteKeys: keys => db.prepare('delete from site_files where key in (' + keys.map(() => '?').join(',') + ')').bind(...keys).run(),
     async put(key, bytes, { contentType, sha256 }) {
       if (bytes.length > D1_MAX_FILE) throw Object.assign(new Error('En bild är för stor för publicering (högst 1,9 MB). Byt till en mindre bild.'), { code: 'image' });
       await db.prepare('insert or replace into site_files (key, bytes, size, sha256, content_type) values (?, ?, ?, ?, ?)').bind(key, bytes, bytes.length, sha256, contentType).run();
@@ -47,11 +53,11 @@ export function d1Sites(db) {
   return {
     get: async id => row(await db.prepare('select id, host, owner_id, active_version, revision from sites where id = ?').bind(id).first()),
     byHost: async host => row(await db.prepare('select id, host, owner_id, active_version, revision from sites where host = ?').bind(host).first()),
-    wasPublished: async (id, versionId) => !!await db.prepare('select 1 from published_versions where site_id = ? and version_id = ?').bind(id, versionId).first(),
+    wasPublished: async (id, versionId) => !!await db.prepare('select 1 from published_versions p where site_id = ? and version_id = ? and not exists (select 1 from version_retirements r where r.site_id=p.site_id and r.version_id=p.version_id)').bind(id, versionId).first(),
     // D1 batch is transactional: public asset access and the pointer switch commit together.
     async swap(id, expected, versionId) {
       const result = await db.batch([
-        db.prepare('update sites set active_version = ?, revision = revision + 1 where id = ? and revision = ?').bind(versionId, id, expected),
+        db.prepare('update sites set active_version = ?, revision = revision + 1 where id = ? and revision = ? and not exists (select 1 from version_retirements where site_id=? and version_id=?)').bind(versionId, id, expected, id, versionId),
         db.prepare('insert or ignore into published_versions (site_id, version_id, published_revision) select id, active_version, revision from sites where id = ? and active_version = ? and revision = ?').bind(id, versionId, expected + 1)
       ]);
       return result[0].meta.changes === 1;
@@ -97,6 +103,12 @@ async function equalSecret(a, b) {
 const json = (status, data) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 
 export default {
+  // No schedule or live deletion is enabled by this source change. Explicitly
+  // enable on ONE fully upgraded API Worker after backup and preview review.
+  async scheduled(event, env, ctx) {
+    if (env.VERSION_RETENTION_ENABLED !== '1') return;
+    ctx.waitUntil(cleanupVersions({ store: d1Retention(env.DB), bucket: env.SITES ? r2Bucket(env.SITES) : d1Bucket(env.DB), dryRun: false }));
+  },
   async fetch(request, env) {
     const url = new URL(request.url), host = url.hostname.toLowerCase();
     let bucket = env.SITES ? r2Bucket(env.SITES) : d1Bucket(env.DB);
@@ -118,6 +130,10 @@ export default {
       const publisher = createPublisher({ bucket, sites, render: renderSite });
       const m = /^\/sites\/([a-z0-9-]+)\/(publish|rollback)$/.exec(url.pathname);
       try {
+        if (request.method === 'POST' && url.pathname === '/maintenance/versions') {
+          const options = await request.json();
+          return json(200, await cleanupVersions({ store: d1Retention(env.DB), bucket, dryRun: options.execute !== true }));
+        }
         if (request.method === 'POST' && url.pathname === '/sites') { const { id, host: siteHost, ownerId } = await request.json(); await sites.create(id, siteHost, ownerId); return json(201, { id }); }
         if (request.method === 'POST' && m && m[2] === 'publish') { const { project, expectedRevision } = await request.json(); return json(200, await publisher.publish(m[1], project, { expectedRevision })); }
         if (request.method === 'POST' && m && m[2] === 'rollback') { const { versionId, expectedRevision } = await request.json(); return json(200, await publisher.rollback(m[1], versionId, { expectedRevision })); }

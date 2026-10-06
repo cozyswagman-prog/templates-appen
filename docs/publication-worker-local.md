@@ -133,6 +133,8 @@ Cloudflares processortid eller bevis på att gratisplanens CPU-gräns klaras.
 - **Kostnad och gränser:** tio riktiga publiceringar med `cpuTime` och `outcome` i
   Cloudflare behöver fortfarande mätas. Lokala tider får inte användas som CPU-bevis.
   Betalplan är inte beslutad; eventuella optimeringar ska hålla sig inom gratislösningen.
-- **Inte gjort:** egna domäner och HTTPS-certifikat (T08), borttagning av gamla versioner, övervakning och
-  verifiering av hela abonnemangskedjan i drift. Städning måste samordnas med
-  versionsregistret och skydda aktiv version samt den beslutade historiken.
+- **Versionsstädning:** aktiv version plus fem tidigare skyddas i den lokalt verifierade
+  städningen. [Förhandsläge, samtidighet och aktivering](version-retention-local.md).
+  Ingen radering eller schemaläggning har aktiverats i molnet; ofullständiga uppladdningar lämnas kvar.
+- **Inte gjort:** egna domäner och HTTPS-certifikat (T08), övervakning och
+  verifiering av hela abonnemangskedjan i drift.
