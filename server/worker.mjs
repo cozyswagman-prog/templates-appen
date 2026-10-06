@@ -7,6 +7,8 @@
 //   PLAN_PRICE_SEK (priset som visas i appen, ska motsvara Stripe-priset), REQUIRE_PLAN='1' för att kräva
 //   aktivt abonnemang vid publicering,
 //   CONTROL_HOST + CONTROL_TOKEN (hemlighet) för provets styrgränssnitt, ALLOW_FAULTS='1' endast lokalt.
+//   CUSTOM_DOMAINS_ENABLED='1' slår på egna domäner (server/domains.mjs): kunden bevisar ägarskap med en TXT-post,
+//   och en domän som ägaren aktiverat (status active, se docs/custom-domains-local.md) visar kundens sajt.
 //   SITES_PATH_HOST: värdnamn där sajterna visas som https://<värd>/<adress>/ (t.ex. workers.dev utan egen domän);
 //   ska vara en egen Worker-adress, skild från PUBLISH_HOST, så kundsajter och API inte delar ursprung.
 // Besökare: GET/HEAD på kundens värdnamn -> aktiv version. Kunder publicerar via PUBLISH_HOST/api/publish
@@ -19,6 +21,7 @@ import { createBilling, createStripeCheckout, createStripePortal } from './billi
 import { cleanupVersions, d1Retention } from './version-retention.mjs';
 import { createPublicationClosure } from './account-closure-publication.mjs';
 import { d1Bucket, d1Sites } from './d1-publication-stores.mjs';
+import { d1DomainStore, domainsFromEnv } from './domains.mjs';
 export { d1Bucket, d1Sites } from './d1-publication-stores.mjs';
 
 export function r2Bucket(binding) {
@@ -84,7 +87,7 @@ export default {
       const billing = env.STRIPE_WEBHOOK_SECRET ? createBilling({ store: d1Billing(env.DB), productId: env.STRIPE_PRODUCT_ID || null }) : null;
       const checkout = env.STRIPE_SECRET_KEY ? createStripeCheckout({ secretKey: env.STRIPE_SECRET_KEY, priceId: env.STRIPE_PRICE_ID, appOrigin: env.APP_ORIGIN, taxRateId: env.STRIPE_TAX_RATE_ID || null }) : null;
       const portal = env.STRIPE_SECRET_KEY ? createStripePortal({ secretKey: env.STRIPE_SECRET_KEY, appOrigin: env.APP_ORIGIN, configurationId: env.STRIPE_PORTAL_CONFIGURATION || null }) : null;
-      return handlePublishRequest(request, { env, sites, source, billing, checkout, portal, closures, publisher: createPublisher({ bucket, sites, render: renderSite }) });
+      return handlePublishRequest(request, { env, sites, source, billing, checkout, portal, closures, domains: domainsFromEnv(env), publisher: createPublisher({ bucket, sites, render: renderSite }) });
     }
     if (env.CONTROL_HOST && host === env.CONTROL_HOST) {
       const token = (request.headers.get('Authorization') || '').replace(/^Bearer /, '');
@@ -116,6 +119,10 @@ export default {
       const m = /^\/([a-z0-9][a-z0-9-]{1,38}[a-z0-9])(\/.*)?$/.exec(pathname);
       if (m && !m[2]) return new Response(null, { status: 301, headers: { Location: '/' + m[1] + '/', 'Cache-Control': 'no-store' } });
       siteHost = m ? host + '/' + m[1] : ''; pathname = m ? m[2] : '/';
+    } else if (env.CUSTOM_DOMAINS_ENABLED === '1' && !(env.SITES_DOMAIN && host.endsWith('.' + env.SITES_DOMAIN))) {
+      // Egen domän: bara aktiverade domäner, och sajten hämtas via samma (ev. spärrade) sajtlager som övriga besök.
+      const siteId = await d1DomainStore(env.DB).activeSite(host), site = siteId && await sites.get(siteId);
+      siteHost = site ? site.host : '';
     }
     const r = await createPublisher({ bucket, sites, render: renderSite }).serve(siteHost, pathname, { ifNoneMatch: request.headers.get('If-None-Match') });
     return new Response(request.method === 'HEAD' ? null : r.body, { status: r.status, headers: r.headers });

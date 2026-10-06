@@ -206,6 +206,14 @@
     <p id="publish-status" role="status" aria-live="polite"></p>
     <p id="publish-error" class="dialog-error" role="alert" hidden></p>
     <p id="publish-plan" class="settings-note" hidden></p>
+    <details id="publish-domains" class="publish-domains" hidden>
+      <summary>Egen domän (valfritt)</summary>
+      <p class="settings-note">Visa hemsidan på en adress du redan äger, till exempel www.dittforetag.se. Du bevisar att domänen är din med en TXT-post hos din domänleverantör. Dina andra DNS-poster ändras inte.</p>
+      <ul id="publish-domain-list" class="publish-domain-list"></ul>
+      <label for="publish-domain-input" class="publish-label">Lägg till domän</label>
+      <div class="publish-address"><input id="publish-domain-input" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="253" placeholder="www.dittforetag.se"><button id="publish-domain-add" class="btn btn-secondary" type="button">Lägg till</button></div>
+      <p id="publish-domain-status" class="settings-note" role="status" aria-live="polite"></p>
+    </details>
     <div class="dialog-actions">
       <button id="publish-close" class="btn btn-secondary" autofocus>Stäng</button>
       <button id="publish-manage" class="btn btn-secondary" hidden>Hantera abonnemang</button>

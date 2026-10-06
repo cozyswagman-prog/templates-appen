@@ -27,7 +27,7 @@
       configured: !!base,
       async status() {
         const data = await call('GET', '/api/sites');
-        return { site: (data.sites || [])[0] || null, domain: data.domain || '', addressStyle: data.addressStyle === 'path' ? 'path' : 'subdomain', planRequired: !!data.planRequired, plan: data.plan || null, price: data.price || null };
+        return { site: (data.sites || [])[0] || null, domain: data.domain || '', addressStyle: data.addressStyle === 'path' ? 'path' : 'subdomain', customDomains: !!data.customDomains, planRequired: !!data.planRequired, plan: data.plan || null, price: data.price || null };
       },
       // Adress till Stripes betalsida. Rätten att publicera ges först när Stripe bekräftat betalningen.
       async checkout() {
@@ -41,6 +41,11 @@
         if (!/^https:\/\/billing\.stripe\.com\//.test(url || '')) throw Object.assign(new Error('Abonnemangssidan kunde inte öppnas. Försök igen.'), { code: 'portal' });
         return url;
       },
+      // Egna domäner: anspråk, kontroll av TXT-posten och bortkoppling. Servern avgör allt; klienten visar bara läget.
+      domains: async () => (await call('GET', '/api/domains')).domains || [],
+      addDomain: hostname => call('POST', '/api/domains', { hostname }),
+      verifyDomain: hostname => call('POST', '/api/domains/verify', { hostname }),
+      removeDomain: hostname => call('POST', '/api/domains/remove', { hostname }),
       createSite: slug => call('POST', '/api/sites', { slug }),
       publish: (siteId, projectId, expectedRevision) => call('POST', '/api/publish', { siteId, projectId, expectedRevision })
     };

@@ -37,3 +37,16 @@ create table if not exists checkout_links (subscription_id text primary key, use
 -- Gratisdrift utan R2 (inget betalkort): sajtens filer i D1. Nycklarna är oföränderliga (sites/<id>/v/<version>/<fil>).
 -- D1 tillåter högst 2 MB per rad, så filer över 1,9 MB nekas vid publicering.
 create table if not exists site_files (key text primary key, bytes blob not null, size integer not null, sha256 text not null, content_type text not null);
+-- Egna domäner (T08): ett anspråk per konto och värdnamn med egen TXT-utmaning. Det partiella unika indexet gör att
+-- en bekräftad domän bara kan tillhöra ett konto, även om två verifierar samtidigt. Ingen främmande nyckel mot sites,
+-- så att radering av en sajt inte blockeras; kontoavslut ska ta bort kontots rader här.
+-- status: pending (väntar på DNS) -> verified (ägarskap bevisat) -> active (värdnamnet är aktiverat hos Cloudflare).
+create table if not exists custom_domains (
+  hostname text not null, owner_id text not null, site_id text not null, token text not null,
+  status text not null check (status in ('pending', 'verified', 'active')),
+  created_at integer not null, verified_at integer, expires_at integer not null,
+  primary key (hostname, owner_id)
+);
+create unique index if not exists custom_domains_confirmed on custom_domains (hostname) where status <> 'pending';
+create index if not exists custom_domains_owner on custom_domains (owner_id);
+create index if not exists custom_domains_site on custom_domains (site_id);

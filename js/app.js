@@ -225,15 +225,17 @@
     const request = ++publishRequest; publishSite = null;
     document.querySelector('.editor-more').open = false;
     publishEl('publish-site-form').hidden = true; publishEl('publish-open').hidden = true; publishEl('publish-subscribe').hidden = true;
+    publishEl('publish-domains').hidden = true; publishEl('publish-domain-list').replaceChildren(); publishEl('publish-domain-status').textContent = '';
     showPlan(null);
     const confirm = publishEl('publish-confirm'); confirm.hidden = false; confirm.disabled = true; confirm.textContent = 'Publicera';
     publishMessage('Hämtar din hemsidas adress…');
     publishDialog.showModal();
     try {
-      const { site, domain, addressStyle, planRequired, plan, price } = await publishClient.status();
+      const { site, domain, addressStyle, customDomains, planRequired, plan, price } = await publishClient.status();
       if (request !== publishRequest) return;
       publishSite = site;
       showPlan(plan);
+      if (customDomains && site) { publishEl('publish-domains').hidden = false; loadDomains(request); }
       if (planRequired && !plan?.active) {
         confirm.hidden = true; publishEl('publish-subscribe').hidden = false;
         publishMessage('Publicering ingår i abonnemanget' + (price?.sek ? ', som kostar ' + price.sek.toLocaleString('sv-SE') + ' kr i månaden' + (price.vat === 'exclusive' ? ' exkl. moms' : '') : '') + '. Betalningen görs på Stripes säkra sida, och du kan publicera så snart den är bekräftad. Du kan säga upp när du vill.');
@@ -253,6 +255,54 @@
     } catch (error) { if (request === publishRequest) publishMessage(error.message, true); }
   }
   publishEl('btn-publish').addEventListener('click', openPublish);
+  // ---------- Egen domän: kunden lägger in en TXT-post; servern kontrollerar den via DNS ----------
+  const domainStatus = text => { publishEl('publish-domain-status').textContent = text; };
+  function renderDomains(list) {
+    const items = list.map(d => {
+      const li = document.createElement('li'), name = document.createElement('strong'), state = document.createElement('p');
+      name.textContent = d.hostname;
+      state.textContent = d.status === 'active' ? 'Aktiv. Hemsidan visas på https://' + d.hostname + '/.'
+        : d.status === 'verified' ? 'Domänen är bekräftad som din. Under piloten aktiveras den manuellt, och Templates kontaktar dig innan du behöver ändra något mer i DNS.'
+        : 'Väntar på TXT-posten. Lägg in den hos din domänleverantör och välj sedan Kontrollera.';
+      li.append(name, state);
+      if (d.status === 'pending') {
+        const dl = document.createElement('dl');
+        for (const [label, value] of [['Typ', d.record.type], ['Namn', d.record.name], ['Värde', d.record.value]]) {
+          const dt = document.createElement('dt'), dd = document.createElement('dd'), code = document.createElement('code');
+          dt.textContent = label; code.textContent = value; dd.append(code); dl.append(dt, dd);
+        }
+        const hint = document.createElement('p'); hint.className = 'settings-note';
+        hint.textContent = 'Om leverantören själv lägger till ditt domännamn skriver du bara den första delen av namnet. Ändringen kan ta upp till några timmar att synas.';
+        li.append(dl, hint);
+      }
+      const actions = document.createElement('div'); actions.className = 'dialog-actions';
+      const button = (text, action) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-secondary'; b.textContent = text; b.setAttribute('aria-label', text + ' ' + d.hostname); b.addEventListener('click', () => domainAction(b, action, d.hostname)); actions.append(b); };
+      if (d.status === 'pending') button('Kontrollera', 'verify');
+      button('Ta bort', 'remove');
+      li.append(actions);
+      return li;
+    });
+    publishEl('publish-domain-list').replaceChildren(...items);
+  }
+  async function loadDomains(request = publishRequest) {
+    try { const list = await publishClient.domains(); if (request === publishRequest) renderDomains(list); }
+    catch (error) { if (request === publishRequest) domainStatus(error.message); }
+  }
+  async function domainAction(button, action, hostname) {
+    if (publishBusy) return;
+    const request = publishRequest; publishBusy = true; button.disabled = true;
+    domainStatus(action === 'add' ? 'Lägger till ' + hostname + '…' : action === 'verify' ? 'Söker efter TXT-posten för ' + hostname + '…' : 'Kopplar bort ' + hostname + '…');
+    try {
+      const result = action === 'add' ? await publishClient.addDomain(hostname) : action === 'verify' ? await publishClient.verifyDomain(hostname) : await publishClient.removeDomain(hostname);
+      if (request !== publishRequest) return;
+      domainStatus(action === 'add' ? 'Lägg in TXT-posten nedan hos din domänleverantör för ' + result.hostname + '.' : action === 'verify' ? result.hostname + ' är bekräftad som din domän.' : result.hostname + ' är bortkopplad. Du kan ta bort TXT-posten.');
+      if (action === 'add') publishEl('publish-domain-input').value = '';
+      await loadDomains(request);
+    } catch (error) { if (request === publishRequest) domainStatus(error.message); }
+    finally { publishBusy = false; button.disabled = false; }
+  }
+  publishEl('publish-domain-add').addEventListener('click', () => { const value = publishEl('publish-domain-input').value.trim(); if (value) domainAction(publishEl('publish-domain-add'), 'add', value); else domainStatus('Skriv domänen, till exempel www.dittforetag.se.'); });
+  publishEl('publish-domain-input').addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); publishEl('publish-domain-add').click(); } });
   publishEl('publish-confirm').addEventListener('click', async () => {
     if (publishBusy || !currentProject || !publishClient) return;
     const request = publishRequest, project = currentProject, confirm = publishEl('publish-confirm');
