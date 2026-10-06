@@ -210,14 +210,19 @@
     if (!publishClient || !currentProject || imageBusy || publishBusy) return;
     const request = ++publishRequest; publishSite = null;
     document.querySelector('.editor-more').open = false;
-    publishEl('publish-site-form').hidden = true; publishEl('publish-open').hidden = true;
+    publishEl('publish-site-form').hidden = true; publishEl('publish-open').hidden = true; publishEl('publish-subscribe').hidden = true;
     const confirm = publishEl('publish-confirm'); confirm.hidden = false; confirm.disabled = true; confirm.textContent = 'Publicera';
     publishMessage('Hämtar din hemsidas adress…');
     publishDialog.showModal();
     try {
-      const { site, domain } = await publishClient.status();
+      const { site, domain, planRequired, plan } = await publishClient.status();
       if (request !== publishRequest) return;
       publishSite = site;
+      if (planRequired && !plan?.active) {
+        confirm.hidden = true; publishEl('publish-subscribe').hidden = false;
+        publishMessage('Publicering ingår i abonnemanget. Betalningen görs på Stripes säkra sida, och du kan publicera så snart den är bekräftad.');
+        return;
+      }
       if (site) publishMessage(site.active ? 'Din hemsida finns på ' + site.url + ' – den nya versionen ersätter den när allt är klart.' : 'Din adress är ' + site.url + '. Inget är publicerat ännu.');
       else {
         publishEl('publish-site-form').hidden = false;
@@ -254,11 +259,40 @@
     } catch (error) {
       if (request !== publishRequest) return;
       publishMessage(error.message, true);
+      if (error.code === 'plan') { confirm.hidden = true; publishEl('publish-subscribe').hidden = false; }
       if (error.code === 'conflict') { try { publishSite = (await publishClient.status()).site; } catch { /* visa felet som det är */ } }
     } finally { publishBusy = false; confirm.disabled = false; publishEl('publish-close').disabled = false; }
   });
   publishEl('publish-close').addEventListener('click', () => { if (!publishBusy) { publishRequest++; publishDialog.close(); } });
   publishDialog.addEventListener('cancel', event => { if (publishBusy) event.preventDefault(); else publishRequest++; });
+  publishEl('publish-subscribe').addEventListener('click', async () => {
+    if (publishBusy || !publishClient) return;
+    const button = publishEl('publish-subscribe');
+    publishBusy = true; button.disabled = true; publishEl('publish-close').disabled = true;
+    try {
+      if (currentProject && dirty) {
+        publishMessage('Sparar dina ändringar…');
+        if (!await saveProject(false) || dirty) throw new Error('Projektet kunde inte sparas. Spara innan du går till betalningen.');
+      }
+      publishMessage('Öppnar betalsidan hos Stripe…');
+      location.assign(await publishClient.checkout());
+    } catch (error) {
+      publishMessage(error.message, true);
+      publishBusy = false; button.disabled = false; publishEl('publish-close').disabled = false;
+    }
+  });
+  // Tillbaka från Stripe: bara ett besked. Rätten att publicera ges av servern när Stripe bekräftat betalningen.
+  // Beskedet visas när inloggningen är laddad, eftersom ett kontobyte rensar tidigare besked.
+  (function paymentReturn() {
+    const params = new URLSearchParams(location.search), outcome = params.get('betalning');
+    if (!outcome) return;
+    params.delete('betalning');
+    history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '') + location.hash);
+    let message = outcome === 'klar' ? 'Tack! Abonnemanget aktiveras så snart Stripe har bekräftat betalningen. Det brukar ta någon minut.' : 'Betalningen avbröts. Inget har dragits.';
+    const show = () => { if (message) { const m = message; message = null; setTimeout(() => window.showToast(m), 0); } };
+    window.Accounts.subscribe(show);
+    setTimeout(show, 1500);
+  })();
   const recovery = window.createDraftRecovery(() => window.sessionStorage);
   let recoveryReady = false, draftScope = null, recoveryOK = false, saveConflict = false;
   const storageScope = () => store().mode === 'cloud' ? 'cloud:' + store().user.id : 'local';
@@ -387,7 +421,8 @@
     t.textContent = msg;
     t.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+    // Längre meddelanden visas längre så att de hinner läsas (minst 2,6 s som tidigare).
+    toastTimer = setTimeout(() => { t.hidden = true; }, Math.max(2600, String(msg).length * 55));
   };
 
   // ---------- Galleri ----------

@@ -29,7 +29,7 @@ export function createAccountSource({ url, publishableKey, fetch: request = (...
       if (r.status === 401 || r.status === 403) return null;
       if (!r.ok) throw fail('upstream', 'Kontotjänsten svarar inte just nu.');
       const user = await r.json();
-      return user && UUID.test(user.id || '') ? { id: user.id } : null;
+      return user && UUID.test(user.id || '') ? { id: user.id, email: typeof user.email === 'string' ? user.email : null } : null;
     },
     // null = projektet finns inte eller tillhör någon annan (RLS ger då inga rader).
     async loadProject(token, ownerId, projectId) {

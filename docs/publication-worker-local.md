@@ -78,7 +78,9 @@ driftsättning. Integrationsprovet i workerd (Miniflare, R2 och D1 simulerade) o
 
 ## Gränser – inte klart för drift
 
-- **Abonnemang (T07)** är inte byggt. Styrgränssnittet är bara för prov.
+- **Abonnemang (T07)** finns som lokal prototyp med Stripe-webhooks, se `docs/billing-local.md`. Inget
+  Stripe-konto är anslutet, och med `REQUIRE_PLAN=1` krävs aktivt abonnemang för att publicera. Styrgränssnittet
+  är bara för prov.
 - **Lokal publiceringsserver:** Publicera-flödet är provat mot riktiga Supabase-testkonton, men med
   publiceringsservern lokalt (workerd) och adresser under `sites.test`, som inte nås från internet.
 - **Bildkontroll:** varje bild kontrolleras mot sin innehållsnyckel, MIME-typ och storlek. Sharp-omkodningen

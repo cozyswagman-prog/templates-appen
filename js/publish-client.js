@@ -25,7 +25,16 @@
     }
     return {
       configured: !!base,
-      async status() { const data = await call('GET', '/api/sites'); return { site: (data.sites || [])[0] || null, domain: data.domain || '' }; },
+      async status() {
+        const data = await call('GET', '/api/sites');
+        return { site: (data.sites || [])[0] || null, domain: data.domain || '', planRequired: !!data.planRequired, plan: data.plan || null };
+      },
+      // Adress till Stripes betalsida. Rätten att publicera ges först när Stripe bekräftat betalningen.
+      async checkout() {
+        const { url } = await call('POST', '/api/billing/checkout', {});
+        if (!/^https:\/\/checkout\.stripe\.com\//.test(url || '')) throw Object.assign(new Error('Betalsidan kunde inte öppnas. Försök igen.'), { code: 'checkout' });
+        return url;
+      },
       createSite: slug => call('POST', '/api/sites', { slug }),
       publish: (siteId, projectId, expectedRevision) => call('POST', '/api/publish', { siteId, projectId, expectedRevision })
     };

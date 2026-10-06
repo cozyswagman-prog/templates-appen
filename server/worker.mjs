@@ -1,6 +1,8 @@
 // Cloudflare Worker för publicerade kundsajter (prototyp).
 //   Bindningar: SITES (R2-bucket), DB (D1, schema i server/schema.sql),
 //   PUBLISH_HOST + APP_ORIGIN + SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY för det inloggade API:t,
+//   abonnemang: STRIPE_WEBHOOK_SECRET (whsec_, hemlighet), STRIPE_SECRET_KEY (hemlighet), STRIPE_PRICE_ID,
+//   STRIPE_PRODUCT_ID (valfri), REQUIRE_PLAN='1' för att kräva aktivt abonnemang vid publicering,
 //   CONTROL_HOST + CONTROL_TOKEN (hemlighet) för provets styrgränssnitt, ALLOW_FAULTS='1' endast lokalt.
 // Besökare: GET/HEAD på kundens värdnamn -> aktiv version. Kunder publicerar via PUBLISH_HOST/api/publish
 // med sin egen inloggning; styrgränssnittet är bara för lokala prov och ska inte konfigureras i drift.
@@ -8,6 +10,7 @@ import { createPublisher } from './publisher.mjs';
 import { renderSite } from './render-worker.mjs';
 import { createAccountSource } from './account-source.mjs';
 import { handlePublishRequest } from './publish-api.mjs';
+import { createBilling, createStripeCheckout } from './billing.mjs';
 
 export function r2Bucket(binding) {
   return {
@@ -41,6 +44,28 @@ export function d1Sites(db) {
     }
   };
 }
+// Abonnemang i D1. Villkoren i SQL gör ordningen säker även när två händelser kommer samtidigt.
+export function d1Billing(db) {
+  const sub = r => r && { id: r.id, userId: r.user_id, customerId: r.customer_id, status: r.status, productOk: !!r.product_ok, currentPeriodEnd: r.current_period_end, cancelAtPeriodEnd: !!r.cancel_at_period_end, lastEventCreated: r.last_event_created };
+  return {
+    async claimEvent(e) { const r = await db.prepare("insert or ignore into billing_events (id, type, created, result, processed_at) values (?, ?, ?, 'processing', ?)").bind(e.id, e.type, e.created, e.processedAt).run(); return r.meta.changes === 1; },
+    finishEvent: (id, result) => db.prepare('update billing_events set result = ? where id = ?').bind(result, id).run(),
+    releaseEvent: id => db.prepare('delete from billing_events where id = ?').bind(id).run(),
+    getSubscription: async id => sub(await db.prepare('select * from subscriptions where id = ?').bind(id).first()),
+    async putSubscription(s) {
+      const r = await db.prepare(`insert into subscriptions (id, user_id, customer_id, status, product_ok, current_period_end, cancel_at_period_end, last_event_created)
+        values (?, ?, ?, ?, ?, ?, ?, ?)
+        on conflict(id) do update set user_id = excluded.user_id, customer_id = excluded.customer_id, status = excluded.status, product_ok = excluded.product_ok,
+          current_period_end = excluded.current_period_end, cancel_at_period_end = excluded.cancel_at_period_end, last_event_created = excluded.last_event_created
+        where excluded.last_event_created >= subscriptions.last_event_created and not (subscriptions.status = 'canceled' and excluded.status <> 'canceled')`)
+        .bind(s.id, s.userId, s.customerId, s.status, s.productOk ? 1 : 0, s.currentPeriodEnd, s.cancelAtPeriodEnd ? 1 : 0, s.lastEventCreated).run();
+      return r.meta.changes === 1;
+    },
+    linkCheckout: (subId, userId) => db.prepare('insert or ignore into checkout_links (subscription_id, user_id) values (?, ?)').bind(subId, userId).run(),
+    linkedUser: async subId => (await db.prepare('select user_id from checkout_links where subscription_id = ?').bind(subId).first())?.user_id || null,
+    subscriptionsForUser: async userId => ((await db.prepare('select * from subscriptions where user_id = ? order by last_event_created desc').bind(userId).all()).results || []).map(sub)
+  };
+}
 async function equalSecret(a, b) {
   const enc = new TextEncoder(), [x, y] = await Promise.all([a, b].map(s => crypto.subtle.digest('SHA-256', enc.encode(String(s)))));
   return crypto.subtle.timingSafeEqual ? crypto.subtle.timingSafeEqual(x, y) : new Uint8Array(x).every((v, i) => v === new Uint8Array(y)[i]);
@@ -54,7 +79,9 @@ export default {
     const sites = d1Sites(env.DB);
     if (env.PUBLISH_HOST && host === env.PUBLISH_HOST) {
       const source = createAccountSource({ url: env.SUPABASE_URL, publishableKey: env.SUPABASE_PUBLISHABLE_KEY });
-      return handlePublishRequest(request, { env, sites, source, publisher: createPublisher({ bucket, sites, render: renderSite }) });
+      const billing = env.STRIPE_WEBHOOK_SECRET ? createBilling({ store: d1Billing(env.DB), productId: env.STRIPE_PRODUCT_ID || null }) : null;
+      const checkout = env.STRIPE_SECRET_KEY ? createStripeCheckout({ secretKey: env.STRIPE_SECRET_KEY, priceId: env.STRIPE_PRICE_ID, appOrigin: env.APP_ORIGIN }) : null;
+      return handlePublishRequest(request, { env, sites, source, billing, checkout, publisher: createPublisher({ bucket, sites, render: renderSite }) });
     }
     if (env.CONTROL_HOST && host === env.CONTROL_HOST) {
       const token = (request.headers.get('Authorization') || '').replace(/^Bearer /, '');
