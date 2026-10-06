@@ -17,6 +17,9 @@ import { createAccountSource } from './account-source.mjs';
 import { handlePublishRequest } from './publish-api.mjs';
 import { createBilling, createStripeCheckout, createStripePortal } from './billing.mjs';
 import { cleanupVersions, d1Retention } from './version-retention.mjs';
+import { createPublicationClosure } from './account-closure-publication.mjs';
+import { d1Bucket, d1Sites } from './d1-publication-stores.mjs';
+export { d1Bucket, d1Sites } from './d1-publication-stores.mjs';
 
 export function r2Bucket(binding) {
   return {
@@ -27,50 +30,6 @@ export function r2Bucket(binding) {
     async get(key) {
       const o = await binding.get(key);
       return o ? { bytes: new Uint8Array(await o.arrayBuffer()), size: o.size, sha256: o.customMetadata?.sha256, contentType: o.httpMetadata?.contentType } : null;
-    }
-  };
-}
-// Filerna i D1 i stället för R2: gratis utan betalkort och starkt konsistent. D1 tillåter högst 2 MB per rad.
-const D1_MAX_FILE = 1900000;
-export function d1Bucket(db) {
-  return {
-    // Range bounds use the primary-key index; no wildcard can cross a version prefix.
-    listKeys: async (prefix, limit) => (await db.prepare('select key from site_files where key >= ? and key < ? order by key limit ?').bind(prefix, prefix + '\uffff', limit).all()).results.map(r => r.key),
-    deleteKeys: keys => db.prepare('delete from site_files where key in (' + keys.map(() => '?').join(',') + ')').bind(...keys).run(),
-    async put(key, bytes, { contentType, sha256 }) {
-      if (bytes.length > D1_MAX_FILE) throw Object.assign(new Error('En bild är för stor för publicering (högst 1,9 MB). Byt till en mindre bild.'), { code: 'image' });
-      await db.prepare('insert or replace into site_files (key, bytes, size, sha256, content_type) values (?, ?, ?, ?, ?)').bind(key, bytes, bytes.length, sha256, contentType).run();
-    },
-    async head(key) { const r = await db.prepare('select size, sha256 from site_files where key = ?').bind(key).first(); return r ? { size: r.size, sha256: r.sha256 } : null; },
-    async get(key) {
-      const r = await db.prepare('select bytes, size, sha256, content_type from site_files where key = ?').bind(key).first();
-      return r ? { bytes: new Uint8Array(r.bytes), size: r.size, sha256: r.sha256, contentType: r.content_type } : null;
-    }
-  };
-}
-export function d1Sites(db) {
-  const row = r => r && { siteId: r.id, host: r.host, ownerId: r.owner_id, active: r.active_version, revision: r.revision };
-  return {
-    get: async id => row(await db.prepare('select id, host, owner_id, active_version, revision from sites where id = ?').bind(id).first()),
-    byHost: async host => row(await db.prepare('select id, host, owner_id, active_version, revision from sites where host = ?').bind(host).first()),
-    wasPublished: async (id, versionId) => !!await db.prepare('select 1 from published_versions p where site_id = ? and version_id = ? and not exists (select 1 from version_retirements r where r.site_id=p.site_id and r.version_id=p.version_id)').bind(id, versionId).first(),
-    // D1 batch is transactional: public asset access and the pointer switch commit together.
-    async swap(id, expected, versionId) {
-      const result = await db.batch([
-        db.prepare('update sites set active_version = ?, revision = revision + 1 where id = ? and revision = ? and not exists (select 1 from version_retirements where site_id=? and version_id=?)').bind(versionId, id, expected, id, versionId),
-        db.prepare('insert or ignore into published_versions (site_id, version_id, published_revision) select id, active_version, revision from sites where id = ? and active_version = ? and revision = ?').bind(id, versionId, expected + 1)
-      ]);
-      return result[0].meta.changes === 1;
-    },
-    listByOwner: async ownerId => ((await db.prepare('select id, host, owner_id, active_version, revision from sites where owner_id = ? order by id').bind(ownerId).all()).results || []).map(row),
-    async create(id, host, ownerId = null) {
-      try { await db.prepare('insert into sites (id, host, owner_id, revision) values (?, ?, ?, 0)').bind(id, host, ownerId).run(); }
-      catch (error) {
-        const msg = String(error.message);
-        if (/sites\.owner_id|sites_one_per_owner/i.test(msg)) throw Object.assign(new Error('Kontot har redan en sajt.'), { code: 'site-exists' });
-        if (/UNIQUE|constraint/i.test(msg)) throw Object.assign(new Error('Adressen är upptagen.'), { code: 'taken' });
-        throw error;
-      }
     }
   };
 }
@@ -112,13 +71,20 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url), host = url.hostname.toLowerCase();
     let bucket = env.SITES ? r2Bucket(env.SITES) : d1Bucket(env.DB);
-    const sites = d1Sites(env.DB);
+    let sites = d1Sites(env.DB), closures = null;
+    // Opt-in only after the separate proposal and every serving/API Worker are
+    // upgraded. R2 cannot share the atomic D1 write barrier and is refused.
+    if (env.ACCOUNT_CLOSURE_ENABLED === '1') {
+      if (env.SITES) return json(503, { error: 'Kontospärren kräver fillagring i D1.', code: 'closure-config' });
+      closures = createPublicationClosure({ db: env.DB, backend: 'd1' });
+      ({ bucket, sites } = closures.protect({ bucket, sites }));
+    }
     if (env.PUBLISH_HOST && host === env.PUBLISH_HOST) {
       const source = createAccountSource({ url: env.SUPABASE_URL, publishableKey: env.SUPABASE_PUBLISHABLE_KEY });
       const billing = env.STRIPE_WEBHOOK_SECRET ? createBilling({ store: d1Billing(env.DB), productId: env.STRIPE_PRODUCT_ID || null }) : null;
       const checkout = env.STRIPE_SECRET_KEY ? createStripeCheckout({ secretKey: env.STRIPE_SECRET_KEY, priceId: env.STRIPE_PRICE_ID, appOrigin: env.APP_ORIGIN, taxRateId: env.STRIPE_TAX_RATE_ID || null }) : null;
       const portal = env.STRIPE_SECRET_KEY ? createStripePortal({ secretKey: env.STRIPE_SECRET_KEY, appOrigin: env.APP_ORIGIN, configurationId: env.STRIPE_PORTAL_CONFIGURATION || null }) : null;
-      return handlePublishRequest(request, { env, sites, source, billing, checkout, portal, publisher: createPublisher({ bucket, sites, render: renderSite }) });
+      return handlePublishRequest(request, { env, sites, source, billing, checkout, portal, closures, publisher: createPublisher({ bucket, sites, render: renderSite }) });
     }
     if (env.CONTROL_HOST && host === env.CONTROL_HOST) {
       const token = (request.headers.get('Authorization') || '').replace(/^Bearer /, '');
@@ -139,7 +105,7 @@ export default {
         if (request.method === 'POST' && m && m[2] === 'rollback') { const { versionId, expectedRevision } = await request.json(); return json(200, await publisher.rollback(m[1], versionId, { expectedRevision })); }
         return json(404, { error: 'Okänd åtgärd.' });
       } catch (error) {
-        const status = { conflict: 409, invalid: 422, incomplete: 502, 'unknown-site': 404, 'unknown-version': 404 }[error.code] || 500;
+        const status = { 'account-closed': 423, conflict: 409, invalid: 422, incomplete: 502, 'unknown-site': 404, 'unknown-version': 404 }[error.code] || 500;
         return json(status, { error: error.message, code: error.code || 'error' });
       }
     }

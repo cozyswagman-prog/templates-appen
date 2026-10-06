@@ -54,6 +54,9 @@ Storage-tjänsten; en verklig implementation måste använda Storage API.
    sessioner, redan pågående anrop och uppladdningar. Supabase-låset är lokalt
    för en databastransaktion och låser inte andra tjänster. En redan hämtad
    publiceringskopia eller utfärdad bildlänk kan finnas kvar.
+   D1-publiceringsbarriär och en avstängd Worker-koppling är nu lokalt provade;
+   se `account-closure-publication-local.md`. Samordnad driftaktivering,
+   övriga tjänster och redan cachade svar återstår.
 3. Lokal beständig jobbkoordinator med exakt omfattning, kontrollpunkter,
    arbetslås, verifiering och begränsade återförsök finns nu; se
    `account-closure-jobs-local.md`. Verkliga tjänsteadaptrar, samordnade spärrar,

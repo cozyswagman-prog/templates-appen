@@ -96,6 +96,9 @@ utgångna arbetslås, låsförnyelse, felaktiga kvittenser, ändrad omfattning,
 
 Separat SQL-prototyp och RLS-prov finns i `account-closure-local.md`.
 Backup v2 och skyddad lokal återställning finns i `backup-local.md`.
+Publiceringsdelen har nu en D1-adapter, databasbarriär och avstängd Worker-koppling,
+provade lokalt; se `account-closure-publication-local.md`. Den ersätter inte
+övriga tjänsteadaptrar eller bevisar att alla pågående anrop är avslutade.
 
 **Kvar:** verkliga tjänsteadaptrar och beständiga spärrar över tjänstegränserna,
 atomärt införande av spärr/jobb eller en verifierad reparationsväg för avbrott

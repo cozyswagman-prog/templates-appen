@@ -16,7 +16,7 @@ const SLUG = /^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$/;
 const RESERVED = new Set(['www', 'api', 'app', 'admin', 'publish', 'control', 'mail', 'smtp', 'ftp', 'static', 'cdn', 'assets', 'templates', 'support', 'hjalp', 'help', 'status', 'test', 'demo']);
 const view = site => ({ siteId: site.siteId, host: site.host, url: 'https://' + site.host + '/', active: site.active, revision: site.revision });
 
-export async function handlePublishRequest(request, { env, sites, publisher, source, billing = null, checkout = null, portal = null }) {
+export async function handlePublishRequest(request, { env, sites, publisher, source, billing = null, checkout = null, portal = null, closures = null }) {
   const path = new URL(request.url).pathname;
   // Stripe anropar server-till-server: ingen origin eller inloggning, bara signaturen räknas.
   if (path === '/api/stripe/webhook') {
@@ -42,6 +42,9 @@ export async function handlePublishRequest(request, { env, sites, publisher, sou
   try {
     const user = await source.getUser(token);
     if (!user) return json(401, { error: 'Logga in igen för att publicera.', code: 'auth' });
+    // Keep the billing portal accessible so a closing account can still manage
+    // its subscription. Webhooks above retain billing facts, never reopen guards.
+    if (closures && route !== 'portal') await closures.assertOpen(user.id);
     // Stripes kund-id stannar på servern; webbläsaren får bara veta om det finns något att hantera.
     const planOf = async () => { if (!billing) return null; const p = await billing.plan(user.id); return { active: p.active, status: p.status, cancelAtPeriodEnd: !!p.cancelAtPeriodEnd, currentPeriodEnd: p.currentPeriodEnd ?? null, manageable: !!(portal && p.customerId) }; };
     if (route === 'list') return json(200, { sites: (await sites.listByOwner(user.id)).map(s => view(s)), domain: env.SITES_PATH_HOST || env.SITES_DOMAIN || null, addressStyle: env.SITES_PATH_HOST ? 'path' : 'subdomain', planRequired: env.REQUIRE_PLAN === '1', plan: await planOf(), price: /^[1-9]\d{0,5}$/.test(env.PLAN_PRICE_SEK || '') ? { sek: Number(env.PLAN_PRICE_SEK), vat: env.STRIPE_TAX_RATE_ID ? 'exclusive' : 'none' } : null });
@@ -82,7 +85,7 @@ export async function handlePublishRequest(request, { env, sites, publisher, sou
     const result = await publisher.publish(siteId, loaded.project, { expectedRevision });
     return json(200, { ...result, projectRevision: loaded.revision, url: 'https://' + site.host + '/' });
   } catch (error) {
-    const status = { conflict: 409, 'no-customer': 409, invalid: 422, image: 422, incomplete: 502, upstream: 502, config: 503, 'unknown-site': 404 }[error.code] || 500;
+    const status = { 'account-closed': 423, conflict: 409, 'no-customer': 409, invalid: 422, image: 422, incomplete: 502, upstream: 502, config: 503, 'unknown-site': 404 }[error.code] || 500;
     return json(status, { error: status === 500 ? 'Publiceringen misslyckades. Föregående version visas fortfarande.' : error.message, code: error.code || 'error' });
   }
 }
