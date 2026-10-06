@@ -10,6 +10,7 @@
 // En version skrivs alltid under ett eget, nytt prefix och blir synlig först när pekaren växlas.
 // Ett avbrutet jobb lämnar därför föregående sajt orörd, och två jobb kan aldrig blanda sina filer.
 
+import imagePolicy from '../js/image-policy.js';
 const FILE = /^(?:[a-z0-9-]+\.html|images\/bild-\d+\.(?:png|jpg|webp|gif)|fonts\/(?:[a-z0-9-]+\.woff2|LICENS\.txt))$/;
 const MIME = { html: 'text/html; charset=utf-8', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', woff2: 'font/woff2', txt: 'text/plain; charset=utf-8', json: 'application/json' };
 const TEMPLATES = ['restaurang', 'salong', 'byggfirma', 'butik', 'portfolio', 'cafe', 'gym', 'konsult', 'hemservice'];
@@ -46,11 +47,22 @@ export function validateProject(project) {
   if (!project || typeof project !== 'object' || !TEMPLATES.includes(project.templateId)) throw fail('invalid', 'Okänd mall.');
   if (typeof project.name !== 'string' || !project.name.trim() || project.name.length > 200) throw fail('invalid', 'Projektet saknar giltigt namn.');
   if (!project.values || typeof project.values !== 'object' || Array.isArray(project.values)) throw fail('invalid', 'Projektet saknar innehåll.');
+  const checked = new Set();
+  const checkImage = value => {
+    if (!value.startsWith('data:') || checked.has(value)) return;
+    const match = /^data:image\/(png|jpeg|webp|gif);base64,([A-Za-z0-9+/]+={0,2})$/.exec(value);
+    if (!match || match[2].length % 4) throw fail('image', 'Bilden har ett ogiltigt format.');
+    if (match[2].length > Math.ceil(imagePolicy.MAX_BYTES / 3) * 4) throw fail('image', 'En bild är för stor för publicering (högst 1,9 MB). Öppna projektet i appen och publicera igen för att anpassa bilden.');
+    let bytes;
+    try { bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0)); } catch { throw fail('image', 'Bilden kunde inte läsas.'); }
+    imagePolicy.validate(bytes, match[1]); checked.add(value);
+  };
   for (const [page, values] of Object.entries(project.values)) {
     if (!/^[a-z0-9-]+\.html$/.test(page) || !values || typeof values !== 'object' || Array.isArray(values)) throw fail('invalid', 'Ogiltig sida i projektet.');
     for (const [key, value] of Object.entries(values)) {
       if (!/^[1-9]\d*$/.test(key) || typeof value !== 'string') throw fail('invalid', 'Numrerade fält måste innehålla text.');
       if (value.startsWith('data:') && !IMAGE.test(value)) throw fail('invalid', 'Bildfältet har en otillåten bild.');
+      checkImage(value);
       if (value.startsWith('templates-image:')) throw fail('invalid', 'Projektets bilder måste hämtas innan publicering.');
     }
   }
@@ -61,6 +73,7 @@ export function validateProject(project) {
       if (typeof v === 'string') {
         if (v.startsWith('templates-image:')) throw fail('invalid', 'Projektets bilder måste hämtas innan publicering.');
         if (v.startsWith('data:') && !IMAGE.test(v)) throw fail('invalid', 'Bildfältet har en otillåten bild.');
+        checkImage(v);
       } else if (v && typeof v === 'object') Object.values(v).forEach(walk);
     };
     walk(project.site);

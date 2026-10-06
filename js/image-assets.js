@@ -106,7 +106,7 @@
       }
     };
   }
-  const api = { create, parse, filename, MAX_BYTES, MAX_IMAGES, PREFIX, BUCKET };
+  const api = { create, parse, filename, locations, toData, MAX_BYTES, MAX_IMAGES, PREFIX, BUCKET };
   root.ImageAssets = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window === 'undefined' ? globalThis : window);

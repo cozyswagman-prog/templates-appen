@@ -102,7 +102,7 @@ async function save(page, text = 'Sparat på ditt konto') {
     await page.goto(base, { waitUntil: 'networkidle' });
     await page.locator('.template-card').filter({ hasText: 'Café & Bageri' }).getByRole('button', { name: 'Använd denna' }).click();
     await page.locator('#project-name').fill('Lokalt Café ÅÄÖ');
-    await page.locator('.slot-field input[type=file]').first().setInputFiles({ name: 'test.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j8z8AAAAASUVORK5CYII=', 'base64') });
+    await page.locator('.slot-field input[type=file]').first().setInputFiles({ name: 'test.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWMQCehpAAAC3QFx9OPLcQAAAABJRU5ErkJggg==', 'base64') });
     await save(page, 'Sparat på den här enheten');
     await page.locator('#btn-back').click();
     await page.getByRole('button', { name: 'Skapa konto', exact: true }).click();

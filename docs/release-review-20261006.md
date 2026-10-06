@@ -23,6 +23,10 @@ fullständig oberoende säkerhetsgranskning av alla tidigare ändringar.
 
 ## Verifierat i den här genomgången
 
+- Bilduppföljning: `npm test` 182/182 PASS (baslinje 177/177), kontoflöde
+  45/45, autosparande 26/26 och riktade bild-/publiceringsprov i Chromium 18/18.
+  Workerd/D1:s exakta bytegräns passerar tre prov. Tidigare tio publiceringar
+  vardera med D1 och R2 passerar fortfarande. Alla dessa uppföljningar är lokala.
 - Versionsstädningens uppföljning: `npm test` 177/177 PASS (baslinje 172/172).
   De frysta renderingsproven för nio mallar är oförändrade.
 - Lokal workerd-städning med D1 och R2: aktiv plus fem, förhandsläge, samtidig
@@ -49,11 +53,13 @@ fullständig oberoende säkerhetsgranskning av alla tidigare ändringar.
    av den nu lokalt verifierade städningen. Förhandsläge, raderingsspärrar och
    begränsade återförsök finns för D1/R2. Aktivering i molnet och separat hantering
    av ofullständiga uppladdningar återstår; se [städguiden](version-retention-local.md).
-4. **Bilder i Workers:** metadata, orientering och max 1600 px behöver en kompatibel
-   lösning. Sharp i det lokala verktyget är ingen fungerande Worker-lösning.
-5. **Filstorlek:** D1-adaptern har redan ett fel för filer över 1,9 MB och API:t
-   vidarebefordrar `image` som HTTP 422 till dialogen. Ett uttryckligt integrerat
-   gränsvärdesprov i det publicerade kundflödet återstår.
+4. **Bilder i Workers:** webbläsarens förberedelse och serverns strukturella kontroll
+   är nu lokalt verifierade. Orientering, kamerametadata, transparens och högst
+   1600 px ingår. Full pixelavkodning görs i webbläsaren; servern kontrollerar inte
+   hela komprimeringen. [Bildguide och driftsättningsordning](worker-images-local.md).
+5. **Filstorlek:** exakta gränser runt 1 900 000 byte är provade i lokal workerd/D1.
+   En verklig för stor PNG avvisas av API:t med HTTP 422, feltext visas i den mobila
+   dialogen och aktiv sajt bevaras. Molnprov och fysisk mobil återstår.
 6. **Driftsättning av versionsadresser:** det additiva schemat måste köras först,
    sajtvärden uppdateras före API:t. Se ordning och återgång i publiceringsguiden.
 7. **T08–T12:** egna domäner, verifierad formulärleverans, fysisk mobiltestning,

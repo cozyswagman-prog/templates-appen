@@ -14,6 +14,8 @@ const CORE = [
   'js/storage.js',
   'js/cloud-config.js',
   'js/image-assets.js',
+  'js/image-policy.js',
+  'js/image-processing.js',
   'js/project-store.js',
   'js/accounts.js',
   'js/autosave.js',

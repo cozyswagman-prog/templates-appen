@@ -27,38 +27,7 @@ window.Editor = (function () {
   // ---------- Hjälpare ----------
 
   function downscaleImage(file, maxSide, cb) {
-    if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
-      cb(null, 'Välj en PNG-, JPEG-, WebP- eller GIF-bild.'); return;
-    }
-    if (file.size > 12 * 1024 * 1024) { cb(null, 'Välj en bild som är mindre än 12 MB.'); return; }
-    const done = data => {
-      try { window.ImageAssets.parse(data); cb(data); }
-      catch (error) { cb(null, error.message); }
-    };
-    const reader = new FileReader();
-    reader.onload = () => {
-      try { window.ImageAssets.parse(reader.result, 12 * 1024 * 1024); }
-      catch (error) { cb(null, error.message); return; }
-      const img = new Image();
-      img.onload = () => {
-        if (!img.width || !img.height || img.width * img.height > 40000000) { cb(null, 'Bilden har för hög upplösning. Välj en bild på högst 40 megapixel.'); return; }
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        if (scale === 1 && file.size < 400 * 1024) {
-          done(reader.result); // liten nog, använd som den är
-          return;
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        const isPng = file.type === 'image/png';
-        done(canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.85));
-      };
-      img.onerror = () => cb(null);
-      img.src = reader.result;
-    };
-    reader.onerror = () => cb(null);
-    reader.readAsDataURL(file);
+    window.ImageProcessing.file(file).then(data => cb(data), error => cb(null, error.message));
   }
 
   // ---------- Badges i förhandsvisningen ----------

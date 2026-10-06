@@ -258,11 +258,10 @@
     const request = publishRequest, project = currentProject, confirm = publishEl('publish-confirm');
     publishBusy = true; confirm.disabled = true; publishEl('publish-close').disabled = true;
     try {
-      // Servern publicerar den sparade versionen på kontot, så osparade ändringar sparas först.
-      if (dirty || !project.cloudRevision) {
-        publishMessage('Sparar dina ändringar…');
-        if (!await saveProject(false) || currentProject !== project || dirty) throw new Error('Projektet kunde inte sparas. Inget har publicerats.');
-      }
+      // Re-save even a clean legacy project: account saving prepares all old images.
+      publishMessage('Anpassar bilder och sparar inför publicering…');
+      const savedBeforePublish = await saveProject(false);
+      if (currentProject !== project || dirty || !savedBeforePublish) throw new Error(saveStatus.textContent || 'Projektet kunde inte sparas. Inget har publicerats.');
       if (!publishSite) {
         publishMessage('Skapar din adress…');
         publishSite = await publishClient.createSite(publishEl('publish-slug').value.trim().toLowerCase());
@@ -381,6 +380,11 @@
       saved = true;
       saveConflict = false;
       dirty = changes !== version;
+      if (!dirty && result.preparedImages) {
+        project.values = result.values;
+        if (result.site) project.site = result.site;
+        openPage(currentPageFile);
+      }
       succeeded = true;
       if (dirty) checkpoint();
       else { recovery.clear(draftScope, project.id); recoveryOK = false; }

@@ -3,7 +3,7 @@ const fs = require('node:fs'), path = require('node:path'), { createHash } = req
 const SOURCE = path.resolve(__dirname, '..');
 const MIGRATIONS = ['202610030001_projects.sql', '202610040001_private_images.sql', '202610040002_image_lifecycle.sql', '202610060001_backup_read.sql'];
 const GUIDES = ['account-test-runbook.md', 'accounts-local.md', 'private-images-local.md', 'image-lifecycle-local.md'];
-const SOURCE_FILES = ['js/accounts.js', 'js/project-store.js', 'js/image-assets.js', 'js/autosave.js', 'vendor/supabase.js', 'package-lock.json'];
+const SOURCE_FILES = ['js/accounts.js', 'js/project-store.js', 'js/image-assets.js', 'js/image-policy.js', 'js/image-processing.js', 'js/autosave.js', 'vendor/supabase.js', 'package-lock.json'];
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const checks = [
   ['auth', 'Registrering och bekräftelse', 'Registrera två testkonton A och B med godkända testadresser. Öppna deras bekräftelselänkar i respektive webbläsare.', 'Båda kan logga in efter bekräftelse; inga riktiga kunduppgifter används.'],

@@ -33,6 +33,10 @@
       if (new TextEncoder().encode(JSON.stringify(content)).length > 20 * 1024 * 1024) throw new Error('Projektet är för stort för kontolagring (max 20 MB). Spara som projektfil och minska antalet stora bilder.');
       return content;
     }
+    async function prepareImages(content, expected) {
+      if (root.document && !root.ImageProcessing) throw new Error('Bildverktyget kunde inte laddas. Ladda om appen och försök igen.');
+      return root.ImageProcessing ? root.ImageProcessing.project(content, () => assertContext(expected)) : { project: content, changed: 0 };
+    }
     const api = {
       get mode() { return mode; }, get user() { return user; }, context,
       subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
@@ -76,7 +80,8 @@
             return copy;
           });
         }
-        const owner = user.id, portable = contentOf(copy);
+        const owner = user.id, prepared = await prepareImages(contentOf(copy), expected), portable = prepared.project;
+        assertContext(expected);
         const content = await images.pack(portable, owner, () => assertContext(expected));
         assertContext(expected);
         let row;
@@ -90,11 +95,11 @@
           try { current = (await client.from('projects').select('id,content,revision,updated_at').eq('id', copy.id).maybeSingle()).data; } catch { /* keep the conflict */ }
           assertContext(expected);
           if (!current || canonical(current.content) !== canonical(content)) throw error;
-          return fromRow({ ...current, content: portable });
+          return { ...fromRow({ ...current, content: portable }), preparedImages: prepared.changed };
         }
         if (!row || row.id !== copy.id || row.revision !== (copy.cloudRevision || 0) + 1) throw new Error('Kontot bekräftade inte sparningen. Behåll en projektfil och öppna den sparade versionen innan du försöker igen.');
         // No download after committing: a later network failure must not hide the new revision.
-        return fromRow({ ...row, content: portable });
+        return { ...fromRow({ ...row, content: portable }), preparedImages: prepared.changed };
       },
       async remove(project, expected = context()) {
         assertContext(expected);
@@ -111,7 +116,8 @@
         if (!user || !client) throw new Error('Logga in för att kopiera till ditt konto.');
         const copy = JSON.parse(JSON.stringify(project));
         const owner = user.id;
-        const content = await images.pack(contentOf(copy), owner, () => assertContext(expected));
+        const prepared = await prepareImages(contentOf(copy), expected);
+        const content = await images.pack(prepared.project, owner, () => assertContext(expected));
         assertContext(expected);
         // Same local id makes repeated attempts non-destructive (conflict, never overwrite).
         await request(client.rpc('save_project', { p_id: copy.id, p_content: content, p_revision: 0, p_owner: owner }), expected);

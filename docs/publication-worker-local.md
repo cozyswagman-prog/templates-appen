@@ -128,8 +128,10 @@ Cloudflares processortid eller bevis på att gratisplanens CPU-gräns klaras.
 - **Tidigare kontoacceptansprov:** Publicera-flödet provades mot riktiga Supabase-testkonton med
   publiceringsservern lokalt (workerd) och adresser under `sites.test`. Dessa prov bevisar
   inte att kundens fullständiga abonnemangsflöde fungerar i den senare molndriftsättningen.
-- **Bildkontroll:** varje bild kontrolleras mot sin innehållsnyckel, MIME-typ och storlek. Sharp-omkodningen
-  (metadata, orientering, max 1600 px) fungerar inte i Workers och återstår.
+- **Bildkontroll:** webbläsaren avkodar och anpassar bilder före kontosparning.
+  Workern kontrollerar format, dimensioner, metadata, bytegräns och innehållsnyckel.
+  [Bildflöde, verifiering och begränsningar](worker-images-local.md). Lokalt klart;
+  ingen Sharp-omkodning eller full pixelavkodning sker i Workers.
 - **Kostnad och gränser:** tio riktiga publiceringar med `cpuTime` och `outcome` i
   Cloudflare behöver fortfarande mätas. Lokala tider får inte användas som CPU-bevis.
   Betalplan är inte beslutad; eventuella optimeringar ska hålla sig inom gratislösningen.
