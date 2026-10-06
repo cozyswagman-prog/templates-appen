@@ -256,6 +256,10 @@ window.SiteKit = (function () {
     const site=settings(project), p=pageSettings(project,file),b=site.business;
     doc.querySelectorAll('[data-content]').forEach(el=>{if(typeof p.content[el.dataset.content]==='string')el.textContent=p.content[el.dataset.content];});
     doc.querySelectorAll('[data-image-key]').forEach(el=>{const im=p.images[el.dataset.imageKey];if(!im||typeof im!=='object')return;if(typeof im.src==='string'&&/^data:image\/(png|jpeg|webp|gif);base64,/.test(im.src))el.src=im.src;if(typeof im.alt==='string')el.alt=im.alt;el.style.objectPosition=['center','top','bottom','left','right'].includes(im.focus)?im.focus:'center';});
+    // Exempelfoton får en svensk bildbeskrivning så länge rutan visar dem och kunden inte skrivit en egen.
+    // Byts bilden ut tas exempelbeskrivningen bort, så att den aldrig beskriver fel bild.
+    const exampleAlts=window.EXEMPEL_ALT||{},altBySrc=new Map(Object.entries(window.EXEMPEL||{}).map(([key,src])=>[src,exampleAlts[key]])),knownAlts=new Set(Object.values(exampleAlts));
+    doc.querySelectorAll('img').forEach(el=>{const im=el.dataset.imageKey&&p.images[el.dataset.imageKey];if(im&&typeof im==='object'&&typeof im.alt==='string')return;const a=altBySrc.get(el.getAttribute('src'));if(a)el.setAttribute('alt',a);else if(knownAlts.has(el.getAttribute('alt')))el.setAttribute('alt','');});
     doc.querySelectorAll('[data-section]').forEach(el=>{const key=el.dataset.section;el.hidden=typeof p.hidden[key]==='boolean'?p.hidden[key]:key==='reviews';});
     doc.querySelectorAll('[data-filter-item]').forEach((el,i)=>{const key=el.dataset.filterItem+'-'+i;if(typeof p.categories[key]==='string')el.dataset.categories=p.categories[key];});
     const automatic={phone:safeLink(b.phone?'tel:'+b.phone:''),email:safeLink(b.email?'mailto:'+b.email:''),booking:safeLink(b.booking),contact:safeLink(b.email?'mailto:'+b.email:''),directions:typeof b.address==='string'&&b.address.trim()?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(b.address):''};

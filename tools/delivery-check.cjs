@@ -55,6 +55,9 @@ function checkDelivery(input, files) {
     });
     doc.querySelectorAll('img[data-image-key]').forEach(el => { if (included(el) && exampleSources.has(el.getAttribute('src'))) examples.push(el.getAttribute('data-caption') || 'Bild i extra avsnitt'); });
     add('images', 'Byt kvarvarande exempelbilder', 'Välj egna bilder i bildrutorna eller under Nya bilder. Exempelfotona får användas, men egna bilder visar ert eget företag. Även bilder bakom Före/Efter-knappar kontrolleras.', [...placeholders.map(el => el.getAttribute('data-caption') || 'Exempelbild ' + ([...actual.querySelectorAll('img')].indexOf(el) + 1)), ...examples]);
+    // Egna bilder utan beskrivning: exempelfoton och platshållare har redan text eller räknas ovan.
+    const undescribed = visible('img').filter(el => !/^data:image\/svg\+xml[,;]/.test(el.getAttribute('src') || '') && !text(el.getAttribute('alt')));
+    add('alt', 'Beskriv era egna bilder', 'Skriv en kort bildbeskrivning under Bilder, beskrivningar & beskärning i editorn. Den läses upp för besökare som inte ser bilden och hjälper sökmotorer.', undescribed.map(el => el.getAttribute('data-caption') || 'Bild ' + ([...actual.querySelectorAll('img')].indexOf(el) + 1)));
     const inactive = visible('a[aria-disabled="true"]');
     add('links', 'Anslut knappar som saknar ett mål', 'Öppna Knappar & länkar eller Företag & funktioner. Ange en fungerande destination eller dölj avsnittet om det inte behövs.', inactive.map(el => text(el.textContent).slice(0, 120) || 'Knapp utan text'));
     const forms = visible('[data-enquiry]');

@@ -85,3 +85,12 @@ test('Created review includes immutable advice, while website bytes and ZIP rema
   for (const [name,bytes] of original) assert.deepEqual(await zip.file(name).async('nodebuffer'), Buffer.from(bytes));
   assert.equal(zip.file('preview.html'), null);
 });
+
+test('Own images without a description get advice; example photos and described images do not', () => {
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  assert.equal(group(check(project()), 'index.html', 'alt'), undefined, 'example photos carry their own description');
+  const own = { ...project(), values: { 'index.html': { 2: png } } };
+  assert.deepEqual(group(check(own), 'index.html', 'alt').items, ['Stor bild högst upp']);
+  own.site = { pages: { 'index.html': { images: { 'original-0': { alt: 'Vår lokal en morgon' } } } } };
+  assert.equal(group(check(own), 'index.html', 'alt'), undefined, 'a written description removes the advice');
+});
