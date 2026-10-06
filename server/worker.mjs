@@ -1,5 +1,5 @@
 // Cloudflare Worker för publicerade kundsajter (prototyp).
-//   Bindningar: SITES (R2-bucket), DB (D1, schema i server/schema.sql),
+//   Bindningar: DB (D1, schema i server/schema.sql), SITES (R2-bucket, valfri; utan den lagras filerna i D1),
 //   PUBLISH_HOST + APP_ORIGIN + SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY för det inloggade API:t,
 //   abonnemang: STRIPE_WEBHOOK_SECRET (whsec_, hemlighet), STRIPE_SECRET_KEY (hemlighet), STRIPE_PRICE_ID,
 //   STRIPE_PRODUCT_ID (valfri), STRIPE_PORTAL_CONFIGURATION (valfri, bpc_), STRIPE_TAX_RATE_ID (txr_, valfri moms;
@@ -24,6 +24,21 @@ export function r2Bucket(binding) {
     async get(key) {
       const o = await binding.get(key);
       return o ? { bytes: new Uint8Array(await o.arrayBuffer()), size: o.size, sha256: o.customMetadata?.sha256, contentType: o.httpMetadata?.contentType } : null;
+    }
+  };
+}
+// Filerna i D1 i stället för R2: gratis utan betalkort och starkt konsistent. D1 tillåter högst 2 MB per rad.
+const D1_MAX_FILE = 1900000;
+export function d1Bucket(db) {
+  return {
+    async put(key, bytes, { contentType, sha256 }) {
+      if (bytes.length > D1_MAX_FILE) throw Object.assign(new Error('En bild är för stor för publicering (högst 1,9 MB). Byt till en mindre bild.'), { code: 'image' });
+      await db.prepare('insert or replace into site_files (key, bytes, size, sha256, content_type) values (?, ?, ?, ?, ?)').bind(key, bytes, bytes.length, sha256, contentType).run();
+    },
+    async head(key) { const r = await db.prepare('select size, sha256 from site_files where key = ?').bind(key).first(); return r ? { size: r.size, sha256: r.sha256 } : null; },
+    async get(key) {
+      const r = await db.prepare('select bytes, size, sha256, content_type from site_files where key = ?').bind(key).first();
+      return r ? { bytes: new Uint8Array(r.bytes), size: r.size, sha256: r.sha256, contentType: r.content_type } : null;
     }
   };
 }
@@ -80,7 +95,7 @@ const json = (status, data) => new Response(JSON.stringify(data), { status, head
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), host = url.hostname.toLowerCase();
-    let bucket = r2Bucket(env.SITES);
+    let bucket = env.SITES ? r2Bucket(env.SITES) : d1Bucket(env.DB);
     const sites = d1Sites(env.DB);
     if (env.PUBLISH_HOST && host === env.PUBLISH_HOST) {
       const source = createAccountSource({ url: env.SUPABASE_URL, publishableKey: env.SUPABASE_PUBLISHABLE_KEY });

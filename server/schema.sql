@@ -18,3 +18,6 @@ create table if not exists subscriptions (
 );
 create index if not exists subscriptions_user on subscriptions (user_id);
 create table if not exists checkout_links (subscription_id text primary key, user_id text not null);
+-- Gratisdrift utan R2 (inget betalkort): sajtens filer i D1. Nycklarna är oföränderliga (sites/<id>/v/<version>/<fil>).
+-- D1 tillåter högst 2 MB per rad, så filer över 1,9 MB nekas vid publicering.
+create table if not exists site_files (key text primary key, bytes blob not null, size integer not null, sha256 text not null, content_type text not null);

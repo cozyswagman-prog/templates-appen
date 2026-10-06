@@ -81,7 +81,10 @@ driftsättning. Integrationsprovet i workerd (Miniflare, R2 och D1 simulerade) o
 Utan egen domän visas sajterna på `https://<SITES_PATH_HOST>/<adress>/`. En adress utan snedstreck på slutet
 skickas vidare till adressen med snedstreck, eftersom sajtens länkar är relativa. Sajterna körs som en egen
 Worker, skild från API:t (`PUBLISH_HOST`), så att kundsajter och API inte delar ursprung. Båda använder samma
-kod, D1 och R2. Provet finns i `testmiljo/cloudflare-20261006/run-path.mjs`.
+kod och samma D1.
+
+Utan R2-bindning (`SITES`) lagras sajtens filer i D1-tabellen `site_files`. Det är gratis utan betalkort och
+starkt konsistent. D1 tillåter högst 2 MB per rad, så en fil över 1,9 MB nekas med ett tydligt fel. Provet finns i `testmiljo/cloudflare-20261006/run-path.mjs`.
 
 ## Gränser – inte klart för drift
 
