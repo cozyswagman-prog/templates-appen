@@ -10,10 +10,15 @@ Read permissions: Products, Prices. Real payments are always performed by the ow
 #>
 param(
   [string]$Config = (Join-Path $PSScriptRoot 'wrangler-api.toml'),
-  [string]$Wrangler = (Join-Path $env:TEMP 'tw-prov/node_modules/wrangler/bin/wrangler.js')
+  [string]$Wrangler = (Join-Path $env:TEMP 'tw-prov/node_modules/wrangler/bin/wrangler.js'),
+  [switch]$CheckOnly
 )
 
-function Stop-TemplatesSetup([string]$Message) { throw [InvalidOperationException]::new("Templates setup: $Message") }
+function Stop-TemplatesSetup([string]$Message) {
+  $setupException = [InvalidOperationException]::new("Templates setup: $Message")
+  $setupException.Data['TemplatesSetup'] = $true
+  throw $setupException
+}
 
 function Read-TemplatesSecret([string]$Prompt) {
   $secure = Read-Host $Prompt -AsSecureString
@@ -43,7 +48,8 @@ function Invoke-SetupWrangler {
     foreach ($arg in $Arguments) { $info.ArgumentList.Add($arg) }
     $info.ArgumentList.Add('--config'); $info.ArgumentList.Add($configPath)
     $process.StartInfo = $info
-    $null = $process.Start()
+    try { $null = $process.Start() }
+    catch { Stop-TemplatesSetup '[CF_START] Kunde inte starta Node.js för Cloudflare-kontrollen.' }
     $stdout = $process.StandardOutput.ReadToEndAsync()
     $stderr = $process.StandardError.ReadToEndAsync()
     if ($InputText) { $process.StandardInput.WriteLine($InputText) }
@@ -52,14 +58,24 @@ function Invoke-SetupWrangler {
       $process.Kill($true)
       Stop-TemplatesSetup 'Cloudflare svarade inte i tid. Ingen framgång är bekräftad.'
     }
-    # Never return stderr: provider diagnostics may contain sensitive request data.
-    $null = $stderr.GetAwaiter().GetResult()
+    # Map known preflight errors to fixed messages; never return raw diagnostics.
+    $diagnostic = $stderr.GetAwaiter().GetResult()
     $result = $stdout.GetAwaiter().GetResult()
-    if ($process.ExitCode -ne 0) { Stop-TemplatesSetup 'Cloudflare-kommandot misslyckades. Kontrollera inloggning och Worker-behörighet.' }
+    if ($process.ExitCode -ne 0) {
+      if (($Arguments -join ' ') -eq 'secret list') {
+        $diagnostic += $result
+        if ($diagnostic -match 'requires at least Node.js') { Stop-TemplatesSetup '[CF_NODE] Terminalens Node.js-version är för gammal för Wrangler.' }
+        if ($diagnostic -match 'keyring|keychain|Credential Manager') { Stop-TemplatesSetup '[CF_KEYRING] Wrangler kunde inte använda den sparade inloggningens nyckelhanterare.' }
+        if ($diagnostic -match 'Not logged in|no credentials were found|necessary to set a CLOUDFLARE_API_TOKEN|token has expired') { Stop-TemplatesSetup '[CF_LOGIN] Wrangler hittar ingen användbar Cloudflare-inloggning i denna terminal.' }
+        if ($diagnostic -match 'Authentication error|authorization|permission|\b10000\b') { Stop-TemplatesSetup '[CF_ACCESS] Cloudflare avvisade åtkomsten till Workern.' }
+        if ($diagnostic -match 'fetch failed|ENOTFOUND|ECONNRESET|ETIMEDOUT|certificate') { Stop-TemplatesSetup '[CF_NETWORK] Anslutningen till Cloudflare misslyckades.' }
+      }
+      Stop-TemplatesSetup '[CF_COMMAND] Cloudflare-kommandot misslyckades; inget rått felsvar visas.'
+    }
     # Only secret list has meaningful output; bulk output is discarded in memory.
     if (($Arguments -join ' ') -eq 'secret list') { return $result }
   } finally {
-    $InputText = $null; $result = $null; $stdout = $null; $stderr = $null
+    $InputText = $null; $result = $null; $stdout = $null; $stderr = $null; $diagnostic = $null
     $process.Dispose()
   }
 }
@@ -78,7 +94,10 @@ function Invoke-SetupStripe {
 
 function Get-SetupSecretNames([string]$Cli, [string]$ConfigFile) {
   try { $items = @(Invoke-SetupWrangler -Cli $Cli -ConfigFile $ConfigFile -Arguments @('secret', 'list') | ConvertFrom-Json -ErrorAction Stop) }
-  catch { Stop-TemplatesSetup 'Kunde inte verifiera Workern och hemligheternas namn. Kontrollera Cloudflare-inloggningen och åtkomsten till templates-api.' }
+  catch {
+    if ($_.Exception.Data['TemplatesSetup']) { throw }
+    Stop-TemplatesSetup '[CF_JSON] Cloudflare-kontrollens svar kunde inte läsas. Ingen nyckel ska matas in.'
+  }
   return @($items | ForEach-Object { if ($_.name -notmatch '^[A-Z][A-Z0-9_]*$') { Stop-TemplatesSetup 'Oväntat svar från Cloudflare.' }; $_.name })
 }
 
@@ -89,7 +108,7 @@ function Test-SetupWebhook([string]$Url) {
   } catch { return $false }
 }
 
-function Invoke-TemplatesStripeSetup([string]$ConfigFile, [string]$Cli) {
+function Invoke-TemplatesStripeSetup([string]$ConfigFile, [string]$Cli, [switch]$CheckOnly) {
   $ErrorActionPreference = 'Stop'
   $VerbosePreference = 'SilentlyContinue'; $DebugPreference = 'SilentlyContinue'; $ProgressPreference = 'SilentlyContinue'
   $key = $null; $signingSecret = $null; $headers = $null; $endpoint = $null; $payload = $null
@@ -107,6 +126,10 @@ function Invoke-TemplatesStripeSetup([string]$ConfigFile, [string]$Cli) {
     if ($configText -match '(?m)^(STRIPE_TAX_RATE_ID|CONTROL_TOKEN|ALLOW_FAULTS)\s*=\s*"[^"]+"') { Stop-TemplatesSetup 'Oväntad skatt eller teststyrning i driftkonfigurationen.' }
     # Confirm an existing accessible worker before asking for the Stripe credential.
     $null = Get-SetupSecretNames $Cli $ConfigFile
+    if ($CheckOnly) {
+      Write-Host 'PASS [CF_PREFLIGHT]: Konfiguration och Cloudflare-åtkomst fungerar. Kontrolläge klart; ingen Stripe-nyckel efterfrågades och inga Stripe-anrop utfördes.'
+      return
+    }
     $key = Read-TemplatesSecret 'Klistra in begränsad Stripe LIVE-nyckel (visas inte)'
     if ($key -notmatch '^rk_live_[A-Za-z0-9]+$') { Stop-TemplatesSetup 'Endast en begränsad live-nyckel accepteras.' }
     $headers = @{ Authorization = "Bearer $key"; 'Stripe-Version' = $apiVersion }
@@ -170,12 +193,13 @@ function Invoke-TemplatesStripeSetup([string]$ConfigFile, [string]$Cli) {
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-  try { Invoke-TemplatesStripeSetup -ConfigFile $Config -Cli $Wrangler }
+  try { Invoke-TemplatesStripeSetup -ConfigFile $Config -Cli $Wrangler -CheckOnly:$CheckOnly }
   catch {
     # Report only our fixed diagnostics, never provider errors or source-line dumps.
     $message = 'Templates setup: installationen avbröts; inget komplett resultat är bekräftat.'
     if ($_.Exception.Message.StartsWith('Templates setup: ')) { $message = $_.Exception.Message }
     [Console]::Error.WriteLine($message)
+    [Console]::Error.WriteLine('Skriptet är avslutat. Klistra INTE in någon nyckel vid PowerShells vanliga PS-prompt.')
     exit 1
   }
 }

@@ -126,6 +126,18 @@ console.log('[]');
   $names = @(Get-SetupSecretNames $cliFile $configFile)
   Assert ($names.Count -eq 0) 'Worker preflight must run from the configuration directory'
   $script:results += @{name='real-child-process-config-working-directory';status='PASS'}
+  # Run the actual owner entry point; check-only must exit before any secret prompt.
+  $output = (& pwsh -NoProfile -File (Join-Path $PSScriptRoot '../tools/stripe-setup.ps1') -Config $configFile -Wrangler $cliFile -CheckOnly 2>&1 | Out-String)
+  Assert ($LASTEXITCODE -eq 0 -and $output.Contains('PASS [CF_PREFLIGHT]')) 'Check-only must complete without Stripe input'
+  $script:results += @{name='owner-entry-point-check-only';status='PASS'}
+  foreach ($diagnosticCase in @('CF_LOGIN','CF_JSON')) {
+    $fakeCode = if ($diagnosticCase -eq 'CF_LOGIN') { "console.error('Not logged in PROVIDER_DIAGNOSTIC_MUST_NOT_ESCAPE'); process.exit(1);" } else { "console.log('PROVIDER_DIAGNOSTIC_MUST_NOT_ESCAPE');" }
+    $fakeCode | Set-Content -LiteralPath $cliFile
+    $caught = $null
+    try { $null = Get-SetupSecretNames $cliFile $configFile } catch { $caught = $_.Exception.Message }
+    Assert ($caught -and $caught.Contains("[$diagnosticCase]") -and -not $caught.Contains('PROVIDER_DIAGNOSTIC_MUST_NOT_ESCAPE')) 'Preflight must return only a fixed diagnostic category'
+    $script:results += @{name="safe-preflight-diagnostic-$diagnosticCase";status='PASS'}
+  }
   [Console]::WriteLine(($script:results | ConvertTo-Json -Compress))
 } finally {
   # Only remove this test's exact fresh directory under the OS temp directory.

@@ -15,6 +15,14 @@ i `%TEMP%/tw-prov`; ägaren ska redan ha godkänt Cloudflare-inloggningen.
 Skriptet startar Wrangler i konfigurationsfilens mapp oavsett var terminalen står.
 Det hindrar att en projektcache i användarens hemmapp skymmer den sparade inloggningen.
 
+Om Cloudflare-kontrollen stoppar: kör samma kommando med `-CheckOnly`. Det läget
+kontrollerar bara konfiguration och Cloudflare-åtkomst, frågar aldrig efter en nyckel
+och gör inga Stripe-anrop. Felkategorier som `[CF_LOGIN]`, `[CF_NODE]`, `[CF_KEYRING]`
+eller `[CF_JSON]` kan delas för felsökning; råa tjänstesvar visas inte.
+Efter ett fel har skriptet avslutats. Klistra aldrig in en nyckel vid den vanliga
+PowerShell-prompten (`PS ...>`). En nyckel som blivit synlig i chatten eller en
+skärmbild ska spärras och ersättas innan installationen fortsätter.
+
 Skapa en begränsad live-nyckel i Stripe: Write för Checkout Sessions, Customer portal,
 Customers och Webhook Endpoints; Read för Products och Prices. Klistra bara in den
 vid skriptets dolda fråga, aldrig i chatten eller som kommandoradsargument.
@@ -45,9 +53,9 @@ abonnemangslivscykeln måste fortfarande verifieras separat; namnlistan bevisar 
 att Stripe har levererat någon händelse.
 
 Lokala tester: `node --test tests/stripe-setup.test.cjs` (kräver PowerShell 7).
-21 fall med simulerad Stripe/Cloudflare inklusive riktiga lokala barnprocesstester
-av loggkontroller, undertryckning av råa fel och rätt arbetsmapp. Inga riktiga
-hemligheter används.
+24 fall med simulerad Stripe/Cloudflare inklusive riktiga lokala barnprocesstester
+av loggkontroller, undertryckning av råa fel, rätt arbetsmapp och kontrolläge utan
+nyckelinmatning. Inga riktiga hemligheter används.
 
 Referenser: [webhook-endpoints](https://docs.stripe.com/api/webhook_endpoints),
 [API-versioner](https://docs.stripe.com/api/versioning).
