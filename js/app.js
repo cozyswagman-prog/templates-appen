@@ -230,20 +230,22 @@
     publishMessage('Hämtar din hemsidas adress…');
     publishDialog.showModal();
     try {
-      const { site, domain, planRequired, plan, price } = await publishClient.status();
+      const { site, domain, addressStyle, planRequired, plan, price } = await publishClient.status();
       if (request !== publishRequest) return;
       publishSite = site;
       showPlan(plan);
       if (planRequired && !plan?.active) {
         confirm.hidden = true; publishEl('publish-subscribe').hidden = false;
-        publishMessage('Publicering ingår i abonnemanget' + (price?.sek ? ', som kostar ' + price.sek.toLocaleString('sv-SE') + ' kr i månaden exkl. moms' : '') + '. Betalningen görs på Stripes säkra sida, och du kan publicera så snart den är bekräftad. Du kan säga upp när du vill.');
+        publishMessage('Publicering ingår i abonnemanget' + (price?.sek ? ', som kostar ' + price.sek.toLocaleString('sv-SE') + ' kr i månaden' + (price.vat === 'exclusive' ? ' exkl. moms' : '') : '') + '. Betalningen görs på Stripes säkra sida, och du kan publicera så snart den är bekräftad. Du kan säga upp när du vill.');
         return;
       }
       if (site) publishMessage(site.active ? 'Din hemsida finns på ' + site.url + ' – den nya versionen ersätter den när allt är klart.' : 'Din adress är ' + site.url + '. Inget är publicerat ännu.');
       else {
         publishEl('publish-site-form').hidden = false;
         publishEl('publish-slug').value = window.suggestPublishSlug(currentProject.name);
-        publishEl('publish-domain').textContent = '.' + domain;
+        // Gemensam adress (t.ex. workers.dev): https://<domän>/<adress>/, annars <adress>.<domän>.
+        publishEl('publish-prefix').hidden = addressStyle !== 'path'; publishEl('publish-prefix').textContent = domain + '/';
+        publishEl('publish-domain').textContent = addressStyle === 'path' ? '/' : '.' + domain;
         confirm.textContent = 'Skapa adress och publicera';
         publishMessage('Välj adressen till din hemsida.');
       }

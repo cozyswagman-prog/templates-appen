@@ -2,10 +2,13 @@
 //   Bindningar: SITES (R2-bucket), DB (D1, schema i server/schema.sql),
 //   PUBLISH_HOST + APP_ORIGIN + SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY för det inloggade API:t,
 //   abonnemang: STRIPE_WEBHOOK_SECRET (whsec_, hemlighet), STRIPE_SECRET_KEY (hemlighet), STRIPE_PRICE_ID,
-//   STRIPE_PRODUCT_ID (valfri), STRIPE_PORTAL_CONFIGURATION (valfri, bpc_), STRIPE_TAX_RATE_ID (txr_, moms),
-//   PLAN_PRICE_SEK (pris exkl. moms som visas i appen, ska motsvara Stripe-priset), REQUIRE_PLAN='1' för att kräva
+//   STRIPE_PRODUCT_ID (valfri), STRIPE_PORTAL_CONFIGURATION (valfri, bpc_), STRIPE_TAX_RATE_ID (txr_, valfri moms;
+//   utan den faktureras utan moms),
+//   PLAN_PRICE_SEK (priset som visas i appen, ska motsvara Stripe-priset), REQUIRE_PLAN='1' för att kräva
 //   aktivt abonnemang vid publicering,
 //   CONTROL_HOST + CONTROL_TOKEN (hemlighet) för provets styrgränssnitt, ALLOW_FAULTS='1' endast lokalt.
+//   SITES_PATH_HOST: värdnamn där sajterna visas som https://<värd>/<adress>/ (t.ex. workers.dev utan egen domän);
+//   ska vara en egen Worker-adress, skild från PUBLISH_HOST, så kundsajter och API inte delar ursprung.
 // Besökare: GET/HEAD på kundens värdnamn -> aktiv version. Kunder publicerar via PUBLISH_HOST/api/publish
 // med sin egen inloggning; styrgränssnittet är bara för lokala prov och ska inte konfigureras i drift.
 import { createPublisher } from './publisher.mjs';
@@ -106,7 +109,14 @@ export default {
       }
     }
     if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Metoden stöds inte.', { status: 405, headers: { Allow: 'GET, HEAD' } });
-    const r = await createPublisher({ bucket, sites, render: renderSite }).serve(host, url.pathname, { ifNoneMatch: request.headers.get('If-None-Match') });
+    let siteHost = host, pathname = url.pathname;
+    if (env.SITES_PATH_HOST && host === env.SITES_PATH_HOST) {
+      // /<adress>/<fil>: sajtens länkar är relativa, så adressen måste sluta med snedstreck.
+      const m = /^\/([a-z0-9][a-z0-9-]{1,38}[a-z0-9])(\/.*)?$/.exec(pathname);
+      if (m && !m[2]) return new Response(null, { status: 301, headers: { Location: '/' + m[1] + '/', 'Cache-Control': 'no-store' } });
+      siteHost = m ? host + '/' + m[1] : ''; pathname = m ? m[2] : '/';
+    }
+    const r = await createPublisher({ bucket, sites, render: renderSite }).serve(siteHost, pathname, { ifNoneMatch: request.headers.get('If-None-Match') });
     return new Response(request.method === 'HEAD' ? null : r.body, { status: r.status, headers: r.headers });
   }
 };

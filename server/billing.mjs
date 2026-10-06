@@ -103,15 +103,16 @@ async function stripePost(request, secretKey, path, form, pattern, message) {
   return data.url;
 }
 // En kund som haft abonnemang förut återanvänder sin Stripe-kund (customerId), så kvitton och kort hålls samman.
-// Moms: priset är exklusive moms och en manuell skattesats (taxRateId, txr_, t.ex. 25 % moms) läggs på varje faktura.
-// Manuella skattesatser kostar inget, till skillnad från Stripe Tax. Faktureringsadress och momsnummer samlas in för kvittot.
+// Moms: utan taxRateId faktureras priset utan moms (beslut 2026-10-06). Med taxRateId (txr_, t.ex. 25 %) är priset
+// exklusive moms, skattesatsen läggs på varje faktura och kundens momsnummer samlas in. Manuella skattesatser kostar
+// inget, till skillnad från Stripe Tax. Faktureringsadressen samlas alltid in för kvittot.
 export function createStripeCheckout({ secretKey, priceId, appOrigin, taxRateId = null, fetch: request = (...a) => fetch(...a) }) {
   return async function checkout(userId, email, customerId = null) {
     if (!validKey(secretKey) || !/^price_/.test(priceId || '') || (taxRateId && !/^txr_/.test(taxRateId))) throw fail('config', 'Abonnemang är inte konfigurerat.');
     const form = new URLSearchParams({ mode: 'subscription', 'line_items[0][price]': priceId, 'line_items[0][quantity]': '1',
       success_url: appOrigin + '/?betalning=klar', cancel_url: appOrigin + '/?betalning=avbruten', client_reference_id: userId,
-      'subscription_data[metadata][user_id]': userId, locale: 'sv', billing_address_collection: 'required', 'tax_id_collection[enabled]': 'true' });
-    if (taxRateId) form.set('subscription_data[default_tax_rates][0]', taxRateId);
+      'subscription_data[metadata][user_id]': userId, locale: 'sv', billing_address_collection: 'required' });
+    if (taxRateId) { form.set('subscription_data[default_tax_rates][0]', taxRateId); form.set('tax_id_collection[enabled]', 'true'); }
     if (/^cus_/.test(customerId || '')) { form.set('customer', customerId); form.set('customer_update[address]', 'auto'); form.set('customer_update[name]', 'auto'); }
     else if (email) form.set('customer_email', email);
     return stripePost(request, secretKey, 'checkout/sessions', form, /^https:\/\/checkout\.stripe\.com\//, 'Betalsidan kunde inte öppnas. Försök igen.');

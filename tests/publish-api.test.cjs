@@ -118,3 +118,13 @@ test('Sites: list own, create one per account with a valid free address, never r
   assert.equal((await w.publisher.serve('kafe-c.sites.test', '/')).status, 404, 'a new address shows nothing until published');
   await assert.rejects(w.sites.create('annan', 'annan.sites.test', C), { code: 'site-exists' }, 'the store itself enforces one site per account');
 });
+
+test('Shared address (workers.dev): sites are created and listed as https://<host>/<address>/', async () => {
+  const w = world(), envOver = { SITES_DOMAIN: '', SITES_PATH_HOST: 'templates-sajter.prov.workers.dev' };
+  const status = await (await w.call(null, { method: 'GET', path: '/api/sites', token: 'token-c', envOver })).json();
+  assert.equal(status.domain, 'templates-sajter.prov.workers.dev'); assert.equal(status.addressStyle, 'path');
+  const made = await w.call({ slug: 'kafe-c' }, { path: '/api/sites', token: 'token-c', envOver });
+  assert.equal(made.status, 201);
+  assert.deepEqual(await made.json(), { siteId: 'kafe-c', host: 'templates-sajter.prov.workers.dev/kafe-c', url: 'https://templates-sajter.prov.workers.dev/kafe-c/', active: null, revision: 0 });
+  assert.equal((await (await w.call(null, { method: 'GET', path: '/api/sites', token: 'token-a' })).json()).addressStyle, 'subdomain');
+});

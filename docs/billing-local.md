@@ -5,11 +5,16 @@ betalning har gjorts.
 
 ## Beslut (ägaren, 2026-10-06)
 
-- **Pris:** 499 kr i månaden exklusive moms. Med 25 % moms blir det 623,75 kr.
+- **Pris:** 499 kr i månaden. Fakturan är utan moms (ändrat samma dag). Momsen kan slås på igen med
+  `STRIPE_TAX_RATE_ID`, och då blir priset exklusive moms.
 - **Adress utan abonnemang:** det går att reservera en adress utan abonnemang, men publicering kräver abonnemang.
 - **Efter avslutat abonnemang:** den publicerade sajten ligger kvar, men nya publiceringar spärras.
-- **Moms:** en manuell skattesats används, eftersom den är gratis. Stripe Tax kostar per transaktion och används
-  inte.
+- **Moms:** om moms används sker det med en gratis manuell skattesats, inte med Stripe Tax som kostar per
+  transaktion. Om fakturan ska ha en text om momsbefrielse läggs den in som sidfot på fakturorna i Stripes
+  kontrollpanel. Kontrollera formuleringen med Skatteverket eller en redovisningskonsult.
+- **Stripe:** live-kontot "Web Design Partner" har produkten `prod_VOClaft57i4FpB`, priset
+  `price_1UNQMQBf7Bcrv8UH0mvHYMAi` (499 kr/mån) och kundportalen `bpc_1UNQMmBf7Bcrv8UHRnPXfiTU`. De skapades
+  2026-10-06.
 
 ## Princip: betalning bekräftas bara av servern
 
@@ -53,8 +58,8 @@ Kunden ── "Publicera" ──▶ /api/publish ── kräver aktivt abonneman
 | `STRIPE_PRICE_ID` | `price_…` för abonnemanget |
 | `STRIPE_PRODUCT_ID` | valfri, `prod_…` |
 | `STRIPE_PORTAL_CONFIGURATION` | valfri, `bpc_…`. Annars gäller portalens standardinställning i Stripe. |
-| `STRIPE_TAX_RATE_ID` | `txr_…`, skattesatsen 25 % moms, exklusive |
-| `PLAN_PRICE_SEK` | `499`, priset exklusive moms som appen visar. Måste stämma med Stripe-priset. |
+| `STRIPE_TAX_RATE_ID` | valfri, `txr_…`. Utan den faktureras utan moms och inget momsnummer efterfrågas. |
+| `PLAN_PRICE_SEK` | `499`, priset som appen visar. Måste stämma med Stripe-priset. |
 | `REQUIRE_PLAN` | `1` = publicering kräver aktivt abonnemang |
 
 Hemligheterna läggs som Worker-hemligheter och aldrig i Git, i appen eller i chatten. Stripe-händelser
@@ -62,11 +67,8 @@ att skicka: `checkout.session.completed` och `customer.subscription.created`, `.
 
 ## Betalsidan
 
-Checkout öppnas med:
-- svenska,
-- obligatorisk faktureringsadress,
-- fält för momsregistreringsnummer,
-- skattesatsen på abonnemanget, så att varje faktura får 25 % moms.
+Checkout öppnas på svenska och kräver faktureringsadress. Med `STRIPE_TAX_RATE_ID` läggs skattesatsen på
+abonnemanget, och kunden får ett fält för momsregistreringsnummer. Utan den blir fakturan utan moms.
 
 En återkommande kund får namn och adress uppdaterade från betalsidan. Appen visar priset ur `PLAN_PRICE_SEK`.
 

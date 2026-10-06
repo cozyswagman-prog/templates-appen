@@ -111,7 +111,7 @@ test('Publishing requires an active subscription set by a signed webhook, never 
   const w = api(), now = Math.floor(Date.now() / 1000);
   assert.equal((await w.call('POST', '/api/publish', { siteId: 'kafe-a', projectId: 'pa' })).status, 402);
   const status = await (await w.call('GET', '/api/sites')).json();
-  assert.equal(status.planRequired, true); assert.equal(status.plan.active, false); assert.deepEqual(status.price, { sek: 499, vat: 'exclusive' }); assert.equal(status.plan.customerId, undefined, 'no Stripe ids are sent to the browser');
+  assert.equal(status.planRequired, true); assert.equal(status.plan.active, false); assert.deepEqual(status.price, { sek: 499, vat: 'none' }, 'no tax rate configured: invoiced without VAT'); assert.equal(status.plan.customerId, undefined, 'no Stripe ids are sent to the browser');
   assert.equal((await w.webhook(subEvent('customer.subscription.created', 'active', now), { bad: true })).status, 400, 'a forged event is refused');
   assert.equal((await w.call('POST', '/api/publish', { siteId: 'kafe-a', projectId: 'pa' })).status, 402);
   const ok = await w.webhook(subEvent('customer.subscription.created', 'active', now));
@@ -139,6 +139,16 @@ test('Checkout opens Stripe\'s page for the signed-in account with the configure
   assert.equal((await api().call('POST', '/api/billing/checkout', {}, { Authorization: '' })).status, 401);
   await assert.rejects(createStripeCheckout({ secretKey: 'pk_test_x', priceId: 'price_1', appOrigin: 'https://app.test' })(A), { code: 'config' });
   await assert.rejects(createStripeCheckout({ secretKey: 'sk_test_x', priceId: 'price_1', appOrigin: 'https://app.test', taxRateId: '25' })(A), { code: 'config' }, 'only a Stripe tax rate id is accepted');
+});
+
+test('Without a tax rate the invoice has no VAT and no VAT number is asked for', async () => {
+  let form;
+  const checkout = createStripeCheckout({ secretKey: 'sk_test_prov', priceId: 'price_1', appOrigin: 'https://app.test', fetch: async (url, init) => { form = new URLSearchParams(init.body); return Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_test_1' }); } });
+  await checkout(A, 'a@example.test');
+  assert.equal(form.get('subscription_data[default_tax_rates][0]'), null); assert.equal(form.get('tax_id_collection[enabled]'), null);
+  assert.equal(form.get('billing_address_collection'), 'required', 'the receipt still gets the customer address');
+  const w = api(); w.deps.env.STRIPE_TAX_RATE_ID = 'txr_moms25';
+  assert.deepEqual((await (await w.call('GET', '/api/sites')).json()).price, { sek: 499, vat: 'exclusive' }, 'with a tax rate the price is shown excluding VAT');
 });
 
 test('Customer portal: only for an account with a Stripe customer; a returning customer reuses it at checkout', async () => {

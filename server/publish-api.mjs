@@ -1,6 +1,7 @@
 // Inloggat publicerings-API (kundens Supabase-token i Authorization):
 //   GET  /api/sites                 -> kundens sajter med adress och aktiv version
-//   POST /api/sites    { slug }     -> skapar kundens sajt på <slug>.<SITES_DOMAIN> (en per konto i piloten)
+//   POST /api/sites    { slug }     -> skapar kundens sajt på <slug>.<SITES_DOMAIN>, eller på <SITES_PATH_HOST>/<slug>/
+//                                      när sajterna visas under en gemensam adress (t.ex. workers.dev); en per konto i piloten
 //   POST /api/publish  { siteId, projectId, expectedRevision }
 //   POST /api/billing/checkout      -> adress till Stripes betalsida för abonnemang
 //   POST /api/billing/portal        -> adress till Stripes kundportal (säga upp, byta kort, kvitton)
@@ -43,7 +44,7 @@ export async function handlePublishRequest(request, { env, sites, publisher, sou
     if (!user) return json(401, { error: 'Logga in igen för att publicera.', code: 'auth' });
     // Stripes kund-id stannar på servern; webbläsaren får bara veta om det finns något att hantera.
     const planOf = async () => { if (!billing) return null; const p = await billing.plan(user.id); return { active: p.active, status: p.status, cancelAtPeriodEnd: !!p.cancelAtPeriodEnd, currentPeriodEnd: p.currentPeriodEnd ?? null, manageable: !!(portal && p.customerId) }; };
-    if (route === 'list') return json(200, { sites: (await sites.listByOwner(user.id)).map(s => view(s)), domain: env.SITES_DOMAIN || null, planRequired: env.REQUIRE_PLAN === '1', plan: await planOf(), price: /^[1-9]\d{0,5}$/.test(env.PLAN_PRICE_SEK || '') ? { sek: Number(env.PLAN_PRICE_SEK), vat: 'exclusive' } : null });
+    if (route === 'list') return json(200, { sites: (await sites.listByOwner(user.id)).map(s => view(s)), domain: env.SITES_PATH_HOST || env.SITES_DOMAIN || null, addressStyle: env.SITES_PATH_HOST ? 'path' : 'subdomain', planRequired: env.REQUIRE_PLAN === '1', plan: await planOf(), price: /^[1-9]\d{0,5}$/.test(env.PLAN_PRICE_SEK || '') ? { sek: Number(env.PLAN_PRICE_SEK), vat: env.STRIPE_TAX_RATE_ID ? 'exclusive' : 'none' } : null });
     if (route === 'checkout') {
       if (!billing || !checkout) return json(503, { error: 'Abonnemang är inte konfigurerat.', code: 'config' });
       const p = await billing.plan(user.id);
@@ -59,11 +60,11 @@ export async function handlePublishRequest(request, { env, sites, publisher, sou
     let body; try { body = await request.json(); } catch { return json(400, { error: 'Ogiltig begäran.', code: 'invalid' }); }
     if (route === 'create') {
       const slug = String(body?.slug || '');
-      if (!env.SITES_DOMAIN) return json(503, { error: 'Publicering är inte konfigurerad.', code: 'config' });
+      if (!env.SITES_DOMAIN && !env.SITES_PATH_HOST) return json(503, { error: 'Publicering är inte konfigurerad.', code: 'config' });
       if (!SLUG.test(slug)) return json(422, { error: 'Välj en adress med 3–40 tecken: a–z, 0–9 och bindestreck, inte först eller sist.', code: 'slug' });
       if (RESERVED.has(slug)) return json(422, { error: 'Adressen är reserverad för tjänsten. Välj en annan.', code: 'slug' });
       if ((await sites.listByOwner(user.id)).length) return json(409, { error: 'Ditt konto har redan en sajt.', code: 'site-exists' });
-      try { await sites.create(slug, slug + '.' + env.SITES_DOMAIN, user.id); }
+      try { await sites.create(slug, env.SITES_PATH_HOST ? env.SITES_PATH_HOST + '/' + slug : slug + '.' + env.SITES_DOMAIN, user.id); }
       catch (error) {
         if (error.code === 'taken') return json(409, { error: 'Adressen är upptagen. Välj en annan.', code: 'taken' });
         if (error.code === 'site-exists') return json(409, { error: 'Ditt konto har redan en sajt.', code: 'site-exists' });

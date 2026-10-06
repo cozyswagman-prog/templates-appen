@@ -76,6 +76,13 @@ Workern paketeras med esbuild (`.woff2` som binary, `.txt` som text, villkoret `
 driftsättning. Integrationsprovet i workerd (Miniflare, R2 och D1 simulerade) och i Chromium ligger i
 `testmiljo/publicering-t06-20261006/` utanför källkoden.
 
+## Sajter under en gemensam adress (workers.dev)
+
+Utan egen domän visas sajterna på `https://<SITES_PATH_HOST>/<adress>/`. En adress utan snedstreck på slutet
+skickas vidare till adressen med snedstreck, eftersom sajtens länkar är relativa. Sajterna körs som en egen
+Worker, skild från API:t (`PUBLISH_HOST`), så att kundsajter och API inte delar ursprung. Båda använder samma
+kod, D1 och R2. Provet finns i `testmiljo/cloudflare-20261006/run-path.mjs`.
+
 ## Gränser – inte klart för drift
 
 - **Abonnemang (T07)** finns som lokal prototyp med Stripe-webhooks, se `docs/billing-local.md`. Inget
