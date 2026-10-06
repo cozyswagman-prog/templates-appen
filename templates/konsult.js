@@ -9,54 +9,135 @@
 <title>Konsultbyrå</title>
 <style>
 ${window.fontCss('playfair', 'inter')}
-  :root { --navy: #0e2233; --paper: #fbfaf7; --ink: #1d2630; --dim: #5d6a77; --gold: #b08d44; }
+  /* Riktning: diskret affärsjuridisk byrå – djup marinblå och varmt papper, Playfair-rubriker, Inter i brödtext,
+     tunna linjer i stället för kort och mässing som enda accent för handlingar (ljus mässing på mörkt, mörk på ljust).
+     Bara vikterna 400/700 finns och inga kursiver. */
+  :root {
+    --navy: #0e2233; --navy-2: #15304a; --paper: #fbfaf7; --stone: #f2eee6; --ink: #1d2630; --dim: #56626e;
+    --line: #dcd5c6; --gold: #c9a55c; --gold-hover: #d8b973; --brass: #7d5f24; --brass-hover: #654c1b;
+    --on-navy: #f2f4f6; --on-navy-dim: #c3ccd5; --radius: 6px;
+  }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--paper); color: var(--ink); line-height: 1.7; }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
-  h1, h2 { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; letter-spacing: 0; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 17px; background: var(--paper); color: var(--ink); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
+  h1, h2 { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; line-height: 1.15; letter-spacing: -.01em; text-wrap: balance; }
+  h3 { font-weight: 700; line-height: 1.3; }
 
-  nav .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 22px; padding-bottom: 22px; }
-  .brand { font-family: 'Playfair Display', Georgia, serif; font-size: 21px; font-weight: 700; }
-  .brand span { color: var(--gold); }
-  nav small { color: var(--dim); letter-spacing: 1px; }
+  nav { background: var(--paper); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 76px; }
+  .brand { font-family: 'Playfair Display', Georgia, serif; font-size: 23px; font-weight: 700; color: var(--navy); }
+  .brand span { color: var(--brass); }
+  nav small { color: var(--dim); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; text-align: right; }
 
-  .hero { background: var(--navy); color: #eef1f4; }
-  .hero .wrap { padding-top: 90px; padding-bottom: 90px; }
-  .hero .kicker { color: var(--gold); letter-spacing: 3px; text-transform: uppercase; font-size: 12px; font-weight: 600; }
-  .hero h1 { font-size: 50px; line-height: 1.12; margin: 18px 0; max-width: 20ch; }
-  .hero p { color: #aebac5; font-size: 18px; max-width: 54ch; margin-bottom: 30px; }
-  .hero .cta { display: inline-block; background: var(--gold); color: #fff; text-decoration: none; font-weight: 600; padding: 14px 34px; border-radius: 4px; }
+  .hero { background: var(--navy); background-image: linear-gradient(115deg, var(--navy) 55%, var(--navy-2) 100%); color: var(--on-navy); }
+  .hero .wrap { padding-top: 120px; padding-bottom: 128px; }
+  .hero .kicker { display: flex; align-items: center; gap: 14px; color: var(--gold); letter-spacing: .14em; text-transform: uppercase; font-size: 13px; font-weight: 700; }
+  .hero .kicker::before { content: ""; width: 40px; height: 1px; background: var(--gold); flex: none; }
+  .hero h1 { font-size: clamp(38px, 5.6vw, 64px); line-height: 1.08; letter-spacing: -.02em; margin: 24px 0; max-width: 17ch; }
+  .hero p { color: var(--on-navy-dim); font-size: clamp(17px, 1.6vw, 20px); line-height: 1.6; max-width: 52ch; margin-bottom: 40px; }
+  .cta { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; background: var(--gold); color: var(--navy); text-decoration: none; font-weight: 700; font-size: 16px; padding: 14px 32px; border-radius: var(--radius); transition: background-color .15s ease-out; }
+  .cta:hover { background: var(--gold-hover); }
+  .kit-konsult .hero :focus-visible, .kit-konsult .slut :focus-visible { outline-color: var(--gold); }
 
-  section { padding: 76px 0; }
-  .section-title { font-size: 32px; margin-bottom: 10px; }
-  .section-sub { color: var(--dim); margin-bottom: 44px; max-width: 62ch; }
+  section { padding: 96px 0; }
+  .section-title { font-size: clamp(30px, 3.6vw, 40px); margin-bottom: 14px; }
+  .section-sub { color: var(--dim); font-size: 18px; margin-bottom: 48px; max-width: 58ch; }
 
-  .tjanster { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
-  .tjanst { border-top: 3px solid var(--gold); padding-top: 20px; }
-  .tjanst h3 { font-size: 19px; margin-bottom: 10px; }
-  .tjanst p { color: var(--dim); font-size: 15px; }
+  .tjanster { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; }
+  .tjanst { display: flex; flex-direction: column; border-top: 2px solid var(--brass); padding-top: 24px; min-width: 0; }
+  .tjanst h3 { font-size: 20px; margin-bottom: 10px; color: var(--navy); }
+  .tjanst p { color: var(--dim); font-size: 16px; margin-bottom: 16px; }
 
-  .siffror { background: #f1ede4; }
-  .siffror .wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; text-align: center; padding-top: 56px; padding-bottom: 56px; }
-  .siffra .tal { font-family: 'Playfair Display', Georgia, serif; font-size: 48px; font-weight: 700; color: var(--navy); }
-  .siffra .vad { color: var(--dim); font-size: 15px; margin-top: 4px; }
+  .siffror { background: var(--stone); }
+  .siffror .wrap { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; padding-top: 64px; padding-bottom: 64px; }
+  .siffra { padding: 8px 24px; }
+  .siffra + .siffra { border-left: 1px solid var(--line); }
+  .siffra .tal { font-family: 'Playfair Display', Georgia, serif; font-size: clamp(44px, 5vw, 56px); line-height: 1.1; font-weight: 700; color: var(--navy); font-variant-numeric: lining-nums; }
+  .siffra .vad { color: var(--dim); font-size: 15px; margin-top: 8px; }
 
   .team-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
-  .team-grid img { width: 100%; aspect-ratio: 4/5; object-fit: cover; margin-bottom: 14px; }
-  .team-grid b { display: block; font-size: 16px; }
-  .team-grid small { color: var(--dim); }
+  .team-grid > div { min-width: 0; }
+  .team-grid img { display: block; width: 100%; height: auto; aspect-ratio: 4/5; object-fit: cover; margin-bottom: 18px; border-radius: var(--radius); }
+  .team-grid b { display: block; font-size: 18px; color: var(--navy); }
+  .team-grid small { display: block; color: var(--dim); font-size: 15px; margin-top: 2px; }
 
-  .slut { background: var(--navy); color: #eef1f4; text-align: center; }
-  .slut h2 { font-size: 34px; margin-bottom: 12px; }
-  .slut p { color: #aebac5; max-width: 50ch; margin: 0 auto 28px; white-space: pre-line; }
-  .slut .cta { display: inline-block; background: var(--gold); color: #fff; text-decoration: none; font-weight: 600; padding: 14px 36px; border-radius: 4px; }
+  .slut { background: var(--navy); color: var(--on-navy); text-align: center; padding: 112px 0; }
+  .slut h2 { font-size: clamp(32px, 4.2vw, 46px); margin-bottom: 20px; }
+  .slut p { color: var(--on-navy-dim); font-size: 18px; line-height: 1.8; max-width: 50ch; margin: 0 auto 40px; white-space: pre-line; }
 
-  footer { text-align: center; padding: 24px; color: var(--dim); font-size: 13px; }
+  footer { text-align: center; padding: 32px 24px; color: var(--dim); font-size: 14px; border-top: 1px solid var(--line); }
 
+  /* Gemensamma tillägg (SiteKit) i byråns ton: samma typsnitt, bredd, accent och hörnradie som resten av sidan. */
+  .kit-konsult { --kit-accent: var(--brass); --kit-bg: var(--paper); --kit-ink: var(--ink); --kit-line: var(--line); --kit-on: #fff; }
+  .kit-konsult .kit-section { padding: 96px 0; border-top: 0; }
+  .kit-konsult .kit-wrap > h2 { font-size: clamp(30px, 3.6vw, 40px); margin-bottom: 32px; }
+  .kit-konsult .kit-section h3 { font-size: 22px; color: var(--navy); }
+  .kit-konsult .kit-section p, .kit-konsult .kit-detail p { max-width: 62ch; }
+  .kit-konsult .kit-button, .kit-konsult .kit-next, .kit-konsult .kit-back, .kit-konsult .kit-form button {
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 16px; border-radius: var(--radius); min-height: 48px; padding: 12px 24px; transition: background-color .15s ease-out, border-color .15s ease-out, color .15s ease-out;
+  }
+  .kit-konsult .kit-button:not([aria-disabled=true]):hover { background: var(--brass-hover); border-color: var(--brass-hover); }
+  /* Ej kopplade knappar ska se inaktiva ut: ingen fyllning, streckad kant, dämpad text. */
+  .kit-konsult .kit-button[aria-disabled=true] { background: transparent; color: var(--dim); border: 1px dashed #a39a87; opacity: 1; cursor: not-allowed; }
+  .kit-konsult .kit-note, .kit-konsult .kit-link-note { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 14px; color: var(--dim); }
+  .kit-konsult .kit-detail summary { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 16px; color: var(--navy); }
+  .kit-konsult .kit-detail summary::marker { color: var(--brass); }
+
+  /* Vägvisaren direkt under hero: tonad yta, tre tydliga val som sekundära knappar och en primär handling. */
+  .kit-konsult [data-section="guide"] { background: var(--stone); padding: 72px 0; }
+  .kit-konsult [data-section="guide"] .kit-wrap > h2 { font-size: clamp(26px, 3vw, 32px); margin-bottom: 24px; }
+  .kit-konsult .kit-choice { gap: 16px; }
+  .kit-konsult .kit-choice .kit-button { justify-content: space-between; gap: 16px; min-height: 64px; padding: 16px 20px; background: var(--paper); color: var(--navy); border: 1px solid var(--line); text-align: left; }
+  .kit-konsult .kit-choice .kit-button::after { content: ""; flex: none; width: 8px; height: 8px; border-right: 2px solid var(--brass); border-bottom: 2px solid var(--brass); transform: rotate(45deg) translateY(-2px); }
+  .kit-konsult .kit-choice .kit-button:hover { background: #fff; border-color: var(--brass); }
+  .kit-konsult [data-section="guide"] .kit-choice + p { margin: 28px 0 16px; }
+
+  .kit-konsult .tjanst .kit-detail { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line); }
+  .kit-konsult .tjanst .kit-detail p { font-size: 15px; color: var(--dim); }
+
+  /* Kunduppdraget: två spalter med mässingslinje, som ett diskret ärendeblad. */
+  .kit-konsult [data-section="clientcase"] { background: var(--paper); border-top: 1px solid var(--line); }
+  .kit-konsult [data-section="clientcase"] h3 { font-family: 'Playfair Display', Georgia, serif; font-size: clamp(22px, 2.4vw, 26px); margin: 0 0 24px; }
+  .kit-konsult [data-section="clientcase"] .kit-grid { gap: 40px; align-items: stretch; }
+  .kit-konsult [data-section="clientcase"] .kit-grid > div { border-left: 2px solid var(--brass); padding-left: 24px; }
+  .kit-konsult [data-section="clientcase"] .kit-grid p { margin: 0; font-size: 18px; }
+
+  .kit-konsult [data-section="faq"] .kit-detail { max-width: 760px; }
+  .kit-konsult [data-section="faq"] .kit-detail summary { font-size: 18px; }
+
+  /* Avslutande kontaktyta. */
+  .kit-konsult [data-section="contact"] { background: var(--stone); }
+  .kit-konsult .kit-contact h3 { font-family: 'Playfair Display', Georgia, serif; margin-top: 0; }
+  .kit-konsult [data-section="contact"] .kit-actions { margin-top: 0; gap: 12px; }
+  .kit-konsult [data-section="contact"] .kit-actions > .kit-link-note { order: 9; flex-basis: 100%; margin: 4px 0 0; }
+  .kit-konsult [data-section="contact"] .kit-actions > .kit-link-note ~ .kit-link-note { margin-top: -8px; }
+  .kit-konsult [data-section="contact"] .kit-button[aria-disabled=true] { border-color: #978e7b; }
+
+  @media (max-width: 860px) {
+    .tjanster { gap: 28px; }
+    .team-grid { gap: 20px; }
+  }
   @media (max-width: 760px) {
-    .hero h1 { font-size: 34px; }
-    .tjanster, .siffror .wrap, .team-grid { grid-template-columns: 1fr; }
-    section { padding: 52px 0; }
+    body { font-size: 16px; }
+    nav .wrap { min-height: 68px; }
+    .brand { font-size: 21px; }
+    nav small { font-size: 12px; letter-spacing: .06em; }
+    .hero .wrap { padding-top: 72px; padding-bottom: 80px; }
+    .hero h1 { margin: 20px 0; max-width: none; }
+    .hero p { margin-bottom: 32px; }
+    .cta { width: 100%; }
+    section, .slut, .kit-konsult .kit-section { padding: 64px 0; }
+    .kit-konsult [data-section="guide"] { padding: 56px 0; }
+    .section-sub { font-size: 17px; margin-bottom: 36px; }
+    .tjanster, .team-grid { grid-template-columns: 1fr; gap: 40px; }
+    .team-grid { max-width: 420px; }
+    .siffror .wrap { padding-top: 48px; padding-bottom: 48px; }
+    .siffra { padding: 4px 8px; }
+    .siffra .tal { font-size: 36px; }
+    .siffra .vad { font-size: 14px; line-height: 1.45; }
+    .kit-konsult .kit-wrap { padding: 0 24px; }
+    .kit-konsult .kit-choice { gap: 12px; }
+    .kit-konsult [data-section="clientcase"] .kit-grid { gap: 24px; }
   }
 </style>
 </head>

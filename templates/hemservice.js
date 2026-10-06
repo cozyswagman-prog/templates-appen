@@ -10,57 +10,150 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hemservice</title>
 <style>
-${window.fontCss('inter')}
-  :root { --teal: #0e9488; --teal-dark: #0b7268; --mist: #f0f7f6; --ink: #17302d; --dim: #5b6f6c; }
+${window.fontCss('outfit', 'inter')}
+  /* Riktning: fräsch skandinavisk hemservice – vit bas och sval mintdimma, Outfit-rubriker och Inter i brödtext,
+     djup teal som enda accent för handlingar, mjuka 16 px-kort och 8 px-knappar. Bara vikterna 400/700, inga kursiver. */
+  :root {
+    --teal: #0d6b60; --teal-dark: #0a5249; --deep: #0f4a44; --deeper: #0b3a35; --on-deep: #d5ebe7;
+    --mist: #eef6f4; --ink: #14302c; --dim: #4b615d; --line: #d3e3df; --field: #6b8c85;
+    --radius: 8px; --radius-lg: 16px; --shadow: 0 1px 2px rgba(20, 48, 44, .05), 0 8px 24px rgba(20, 48, 44, .06);
+  }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--ink); line-height: 1.65; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 17px; background: #fff; color: var(--ink); line-height: 1.65; -webkit-font-smoothing: antialiased; }
   .wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
-  h1, h2, h3 { font-weight: 700; letter-spacing: -.4px; }
+  h1, h2, h3 { font-family: 'Outfit', 'Inter', system-ui, sans-serif; font-weight: 700; line-height: 1.15; letter-spacing: -.01em; text-wrap: balance; }
 
-  nav .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 18px; padding-bottom: 18px; }
-  .brand { font-weight: 700; font-size: 19px; color: var(--teal); }
-  nav .tel { font-weight: 700; color: var(--ink); text-decoration: none; }
+  nav { background: #fff; border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; }
+  .brand { font-family: 'Outfit', 'Inter', system-ui, sans-serif; font-weight: 700; font-size: 21px; letter-spacing: -.01em; color: var(--teal); }
+  nav .tel { gap: 8px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; font-weight: 700; font-size: 16px; color: var(--ink); text-decoration: none; white-space: nowrap; transition: border-color .15s ease-out, background-color .15s ease-out; }
+  nav .tel::before { content: ""; width: 16px; height: 16px; flex-shrink: 0; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230d6b60' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z'/%3E%3C/svg%3E") center / contain no-repeat; }
+  nav .tel:hover { border-color: var(--teal); background: var(--mist); }
 
   .hero { background: var(--mist); }
-  .hero .wrap { display: grid; grid-template-columns: 1.1fr 1fr; gap: 44px; align-items: center; padding-top: 64px; padding-bottom: 64px; }
-  .hero h1 { font-size: 42px; line-height: 1.12; margin-bottom: 16px; }
-  .hero > .wrap p.ingress { color: var(--dim); font-size: 17px; max-width: 46ch; margin-bottom: 22px; }
-  .hero ul.usp { list-style: none; padding: 0; margin: 0 0 26px; display: flex; flex-direction: column; gap: 10px; }
-  .hero ul.usp li { display: flex; gap: 10px; align-items: flex-start; font-weight: 500; }
-  .hero .cta { display: inline-block; background: var(--teal); color: #fff; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 10px; }
-  .hero .cta:hover { background: var(--teal-dark); }
-  .hero img { width: 100%; height: 400px; object-fit: cover; border-radius: 16px; }
+  .hero .wrap { display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items: center; padding-top: 80px; padding-bottom: 88px; }
+  .hero .wrap > *, .tjanstegrid > *, .steggrid > * { min-width: 0; }
+  .hero h1 { font-size: clamp(36px, 5.2vw, 56px); line-height: 1.06; letter-spacing: -.02em; margin-bottom: 20px; }
+  .hero > .wrap p.ingress { color: var(--dim); font-size: 19px; line-height: 1.6; max-width: 44ch; margin-bottom: 28px; }
+  .hero ul.usp { list-style: none; padding: 0; margin: 0 0 36px; display: flex; flex-direction: column; gap: 12px; }
+  .hero ul.usp li { display: flex; gap: 12px; align-items: flex-start; font-weight: 400; }
+  .hero ul.usp svg circle { fill: var(--teal); }
+  .cta { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 14px 28px; background: var(--teal); color: #fff; font-weight: 700; font-size: 17px; line-height: 1.3; text-decoration: none; text-align: center; border-radius: var(--radius); box-shadow: 0 1px 2px rgba(11, 58, 53, .12), 0 6px 16px rgba(13, 107, 96, .18); transition: background-color .15s ease-out; }
+  .cta:hover { background: var(--teal-dark); }
+  .hero img { display: block; width: 100%; height: auto; aspect-ratio: 43 / 38; object-fit: cover; border-radius: var(--radius-lg); box-shadow: var(--shadow); }
 
-  section { padding: 72px 0; }
-  .section-title { font-size: 30px; text-align: center; margin-bottom: 10px; }
-  .section-sub { color: var(--dim); text-align: center; margin-bottom: 44px; }
+  section { padding: 96px 0; }
+  .section-title { font-size: clamp(30px, 4vw, 40px); margin-bottom: 12px; }
+  .section-sub { color: var(--dim); font-size: 18px; max-width: 52ch; margin-bottom: 48px; }
 
-  .tjanstegrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-  .tkort { background: var(--mist); border-radius: 14px; padding: 24px 22px; }
-  .tkort h3 { font-size: 17px; margin-bottom: 8px; }
-  .tkort p { color: var(--dim); font-size: 14px; }
+  .tjanstegrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .tkort { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 28px 24px 12px; transition: border-color .15s ease-out; }
+  .tkort:hover { border-color: #a9c7c0; }
+  .tkort h3 { font-size: 22px; margin-bottom: 8px; }
+  .tkort p { color: var(--dim); font-size: 16px; line-height: 1.6; }
 
-  .steg { background: var(--teal); color: #fff; }
+  .steg { background: var(--deep); color: #fff; }
   .steg .section-title { color: #fff; }
-  .steg .section-sub { color: #c8e8e4; }
-  .steggrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; text-align: center; }
-  .stegruta .nr { width: 44px; height: 44px; border-radius: 50%; background: #fff; color: var(--teal); font-weight: 700; font-size: 19px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; }
-  .stegruta h3 { font-size: 18px; margin-bottom: 6px; }
-  .stegruta p { color: #c8e8e4; font-size: 15px; }
+  .steg .section-sub { color: var(--on-deep); }
+  .steggrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .stegruta { border-top: 1px solid rgba(213, 235, 231, .28); padding-top: 28px; }
+  .stegruta .nr { width: 48px; height: 48px; border-radius: 50%; background: #fff; color: var(--teal); font-family: 'Outfit', 'Inter', system-ui, sans-serif; font-weight: 700; font-size: 21px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+  .stegruta h3 { font-size: 22px; margin-bottom: 8px; }
+  .stegruta p { color: var(--on-deep); font-size: 16px; max-width: 34ch; }
 
-  .kontakt { text-align: center; }
-  .kontakt p { color: var(--dim); white-space: pre-line; font-size: 17px; margin-bottom: 26px; }
-  .kontakt .cta { display: inline-block; background: var(--teal); color: #fff; font-weight: 700; text-decoration: none; padding: 14px 36px; border-radius: 10px; }
+  .kontakt { text-align: center; background: var(--mist); }
+  .kontakt .section-title { margin-bottom: 16px; }
+  .kontakt p { color: var(--ink); white-space: pre-line; font-size: 19px; line-height: 1.7; margin-bottom: 32px; }
 
-  footer { background: var(--mist); text-align: center; padding: 24px; color: var(--dim); font-size: 13px; }
+  footer { background: var(--deeper); text-align: center; padding: 32px 24px; color: #cfe3df; font-size: 14px; }
 
-  @media (max-width: 860px) { .tjanstegrid { grid-template-columns: 1fr 1fr; } }
+  /* SiteKit-delarna i samma typsnitt, accent, hörn och rytm som resten av sidan. */
+  .kit-hemservice { --kit-accent: var(--teal); --kit-bg: #fff; --kit-ink: var(--ink); --kit-line: var(--line); }
+  .kit-hemservice .kit-section { padding: 96px 0; border-top: 0; }
+  .kit-hemservice .kit-wrap > h2 { font-size: clamp(30px, 4vw, 40px); margin-bottom: 20px; }
+  .kit-hemservice .kit-grid { gap: 56px; }
+  .kit-hemservice .kit-section p { max-width: 62ch; }
+  .kit-hemservice .kit-section img { border-radius: var(--radius-lg); }
+  .kit-hemservice .kit-button, .kit-hemservice .kit-next, .kit-hemservice .kit-back, .kit-hemservice .kit-form button {
+    min-height: 48px; padding: 12px 24px; border-radius: var(--radius); font: 700 16px/1.3 'Inter', system-ui, sans-serif; transition: background-color .15s ease-out, border-color .15s ease-out;
+  }
+  .kit-hemservice .kit-button:not([aria-disabled=true]):hover, .kit-hemservice .kit-next:hover, .kit-hemservice .kit-form button[type=submit]:not(:disabled):hover { background: var(--teal-dark); border-color: var(--teal-dark); }
+  .kit-hemservice .kit-back { background: #fff; color: var(--teal); border-color: var(--field); }
+  .kit-hemservice .kit-back:hover { background: var(--mist); }
+  /* Ej kopplade knappar ska se inaktiva ut, inte som en vanlig handling. */
+  .kit-hemservice .kit-button[aria-disabled=true], .kit-hemservice .kit-form button:disabled { background: transparent; color: var(--dim); border: 1px dashed var(--field); box-shadow: none; opacity: 1; cursor: not-allowed; }
+  .kit-hemservice .kit-link-note, .kit-hemservice .kit-note { font: 400 14px/1.6 'Inter', system-ui, sans-serif; color: var(--dim); }
+  .kit-hemservice .kit-eyebrow, .kit-hemservice .kit-progress { font: 700 13px/1.5 'Inter', system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+
+  .kit-hemservice .kit-detail summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; list-style: none; font: 700 17px/1.4 'Inter', system-ui, sans-serif; }
+  .kit-hemservice .kit-detail summary::-webkit-details-marker { display: none; }
+  .kit-hemservice .kit-detail summary::after { content: ""; width: 9px; height: 9px; flex-shrink: 0; margin-right: 4px; border-right: 2px solid var(--teal); border-bottom: 2px solid var(--teal); transform: translateY(-3px) rotate(45deg); transition: transform .15s ease-out; }
+  .kit-hemservice .kit-detail[open] summary::after { transform: translateY(2px) rotate(-135deg); }
+  .kit-hemservice .kit-detail p { color: var(--dim); margin-top: 0; }
+  .kit-hemservice .tkort .kit-detail { margin-top: auto; padding: 0; border-bottom: 0; }
+  .kit-hemservice .tkort .kit-detail summary { margin-top: 20px; border-top: 1px solid var(--line); font-size: 15px; color: var(--teal); }
+  .kit-hemservice .tkort .kit-detail p { font-size: 15px; margin: 0 0 16px; }
+
+  .kit-hemservice .kit-form label, .kit-hemservice .kit-calculator label { font: 700 15px/1.5 'Inter', system-ui, sans-serif; margin: 0 0 20px; }
+  .kit-hemservice .kit-form input, .kit-hemservice .kit-form textarea, .kit-hemservice .kit-form select,
+  .kit-hemservice .kit-calculator input, .kit-hemservice .kit-calculator select { font: 400 16px/1.5 'Inter', system-ui, sans-serif; background: #fff; border-color: var(--field); border-radius: var(--radius); }
+  .kit-hemservice .kit-form :focus-visible, .kit-hemservice .kit-calculator :focus-visible { outline-offset: 2px; }
+
+  /* Prisindikatorn som ett eget, tydligt kort. */
+  .kit-hemservice [data-section="estimate"] { background: var(--mist); }
+  .kit-hemservice .kit-calculator { margin-top: 28px; padding: 32px; background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+  .kit-hemservice .kit-price { font-family: 'Outfit', 'Inter', system-ui, sans-serif; display: block; font-size: clamp(24px, 3vw, 30px); line-height: 1.2; color: var(--teal); margin: 28px 0 4px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .kit-hemservice .kit-calculator .kit-note { margin: 0 0 20px; }
+  .kit-hemservice .kit-calculator .kit-button { width: 100%; }
+  .kit-hemservice [data-section="estimate"] .kit-grid { align-items: center; }
+
+  /* Förfrågan i ett lugnt kort med tydliga steg. */
+  .kit-hemservice [data-section="enquiry"] .kit-form { margin-top: 32px; padding: 36px; background: var(--mist); border-radius: var(--radius-lg); }
+  .kit-hemservice .kit-form legend { font: 700 22px/1.25 'Outfit', 'Inter', system-ui, sans-serif; margin: 8px 0 20px; padding: 0; }
+  .kit-hemservice .kit-form .kit-actions { margin: 8px 0 0; gap: 12px; }
+  .kit-hemservice .kit-form [role=status] { margin: 16px 0 0; font-size: 15px; color: var(--dim); }
+  .kit-hemservice .kit-form .kit-progress { margin: 0 0 4px; }
+
+  .kit-hemservice [data-section="faq"] .kit-wrap > * { max-width: 760px; }
+  .kit-hemservice [data-section="faq"] .kit-detail { border-bottom-color: var(--line); }
+
+  /* Avslutningen blir en mörk, tydlig kontaktyta som leder ner i sidfoten. */
+  .kit-hemservice [data-section="contact"] { background: var(--deep); color: #fff; }
+  .kit-hemservice [data-section="contact"] .kit-contact address, .kit-hemservice [data-section="contact"] .kit-contact p { color: var(--on-deep); }
+  .kit-hemservice [data-section="contact"] .kit-contact h3 { color: #fff; }
+  .kit-hemservice [data-section="contact"] .kit-actions { align-items: center; }
+  .kit-hemservice [data-section="contact"] .kit-button:not([aria-disabled=true]) { background: #fff; border-color: #fff; color: var(--deep); }
+  .kit-hemservice [data-section="contact"] .kit-button:not([aria-disabled=true]):hover { background: var(--on-deep); border-color: var(--on-deep); }
+  .kit-hemservice [data-section="contact"] .kit-button[aria-disabled=true] { color: var(--on-deep); border-color: #8db8b0; }
+  .kit-hemservice [data-section="contact"] .kit-link-note, .kit-hemservice [data-section="contact"] .kit-note { color: var(--on-deep); }
+  .kit-hemservice [data-section="contact"] .kit-link-note { flex-basis: 100%; margin: -4px 0 4px; }
+  /* Utan ifyllda företagsuppgifter: dölj den tomma spalten så att knapparna inte hamnar ute till höger. */
+  .kit-hemservice [data-section="contact"] .kit-grid:has(.kit-contact > h3:empty + address:empty) { grid-template-columns: 1fr; }
+  .kit-hemservice [data-section="contact"] .kit-contact:has(> h3:empty + address:empty) { display: none; }
+  .kit-hemservice [data-section="contact"] :focus-visible { outline-color: #fff; }
+
+  @media (max-width: 900px) {
+    .tjanstegrid { grid-template-columns: 1fr 1fr; }
+    .hero .wrap { gap: 40px; }
+  }
   @media (max-width: 720px) {
-    .hero .wrap { grid-template-columns: 1fr; padding-top: 44px; padding-bottom: 44px; }
-    .hero img { height: 260px; }
-    .hero h1 { font-size: 32px; }
+    body { font-size: 16px; }
+    .wrap, .kit-hemservice .kit-wrap { padding: 0 20px; }
+    nav .wrap { min-height: 64px; gap: 12px; }
+    .brand { font-size: 18px; line-height: 1.2; }
+    nav .tel { padding: 0 12px; font-size: 15px; }
+    nav .tel::before { display: none; }
+    .hero .wrap { grid-template-columns: 1fr; gap: 40px; padding-top: 48px; padding-bottom: 56px; }
+    .hero > .wrap p.ingress { font-size: 17px; }
+    .cta { width: 100%; }
     .tjanstegrid, .steggrid { grid-template-columns: 1fr; }
-    section { padding: 52px 0; }
+    .steggrid { gap: 28px; }
+    section, .kit-hemservice .kit-section { padding: 64px 0; }
+    .section-sub { margin-bottom: 32px; }
+    .kontakt p { font-size: 17px; }
+    .kit-hemservice .kit-grid { gap: 40px; }
+    .kit-hemservice .kit-calculator, .kit-hemservice [data-section="enquiry"] .kit-form { padding: 24px 20px; }
+    .kit-hemservice [data-section="contact"] .kit-contact p { margin-bottom: 0; }
   }
 </style>
 </head>

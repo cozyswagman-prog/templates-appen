@@ -8,58 +8,175 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gym</title>
 <style>
-${window.fontCss('outfit')}
-  :root { --bg: #16181d; --panel: #1f222a; --text: #f2f3f5; --dim: #9aa0ab; --lime: #c8f046; }
+${window.fontCss('outfit', 'inter')}
+  /* Riktning: nordisk styrkestudio – grafitsvart bas, Outfit i versala, täta rubriker, Inter i brödtext,
+     limegrönt som enda accent för handlingar och små markörer. Pillerknappar, 14 px kort. Bara vikterna 400/700. */
+  :root {
+    --bg: #16181d; --band: #1b1e24; --panel: #1f222a; --panel-hi: #242832; --line: #2e323c; --field: #6b7180;
+    --text: #f2f3f5; --soft: #c9ced6; --dim: #a9afba; --lime: #c8f046; --lime-hi: #dcf87e;
+  }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
-  h1, h2, h3 { font-weight: 700; letter-spacing: -.5px; }
+  body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 17px; background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  h1, h2, h3 { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; font-weight: 700; line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; }
 
-  .topbar .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 18px; padding-bottom: 18px; }
-  .logo { font-weight: 700; font-size: 20px; letter-spacing: 2px; text-transform: uppercase; }
+  .topbar { position: relative; z-index: 2; border-bottom: 1px solid var(--line); background: var(--bg); }
+  .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 76px; }
+  .logo { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; font-weight: 700; font-size: 21px; letter-spacing: .14em; text-transform: uppercase; line-height: 1.2; }
   .logo em { color: var(--lime); font-style: normal; }
-  .topbar .cta-liten { color: var(--bg); background: var(--lime); text-decoration: none; font-weight: 700; font-size: 14px; padding: 9px 20px; border-radius: 99px; }
+  .topbar .cta-liten, .hero .cta {
+    display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px; border-radius: 999px;
+    background: var(--lime); color: var(--bg); font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; font-weight: 700; font-size: 15px; letter-spacing: .02em;
+    text-decoration: none; white-space: nowrap; transition: background-color .15s ease-out, transform .15s ease-out;
+  }
+  .topbar .cta-liten:hover, .hero .cta:hover { background: var(--lime-hi); }
+  .hero .cta:active { transform: translateY(1px); }
 
-  .hero { position: relative; min-height: 500px; display: flex; align-items: center; }
-  .hero .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .45; }
-  .hero .wrap { position: relative; z-index: 1; padding-top: 48px; padding-bottom: 48px; }
-  .hero .kicker { color: var(--lime); font-weight: 700; letter-spacing: 3px; text-transform: uppercase; font-size: 13px; }
-  .hero h1 { font-size: 58px; line-height: 1.02; text-transform: uppercase; margin: 14px 0 18px; max-width: 16ch; }
-  .hero p { color: var(--dim); font-size: 18px; max-width: 46ch; margin-bottom: 28px; }
-  .hero .cta { display: inline-block; background: var(--lime); color: var(--bg); font-weight: 700; text-decoration: none; padding: 15px 36px; border-radius: 99px; font-size: 16px; }
+  .hero { position: relative; min-height: clamp(540px, 84vh, 780px); display: flex; align-items: center; overflow: hidden; background: var(--bg); }
+  .hero .bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(22, 24, 29, .96) 0%, rgba(22, 24, 29, .86) 42%, rgba(22, 24, 29, .45) 100%), linear-gradient(0deg, rgba(22, 24, 29, .9) 0%, rgba(22, 24, 29, 0) 35%); }
+  .hero .wrap { position: relative; z-index: 1; width: 100%; padding-top: 96px; padding-bottom: 96px; }
+  .hero .kicker { display: flex; align-items: center; gap: 12px; color: var(--lime); font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; font-size: 14px; }
+  .hero .kicker::before { content: ""; width: 32px; height: 3px; background: var(--lime); flex: none; }
+  .hero h1 { font-size: clamp(46px, 8.4vw, 104px); line-height: .94; text-transform: uppercase; letter-spacing: -.015em; margin: 24px 0 28px; max-width: 11ch; }
+  .hero p { color: var(--soft); font-size: clamp(18px, 1.6vw, 20px); line-height: 1.6; max-width: 44ch; margin-bottom: 40px; }
+  .hero .cta { min-height: 56px; padding: 0 34px; font-size: 17px; }
 
-  section { padding: 72px 0; }
-  .section-title { font-size: 32px; margin-bottom: 8px; }
-  .section-title span { color: var(--lime); }
-  .section-sub { color: var(--dim); margin-bottom: 40px; max-width: 60ch; }
+  section { padding: 104px 0; }
+  .section-title { font-size: clamp(34px, 4.6vw, 52px); text-transform: uppercase; letter-spacing: -.01em; margin-bottom: 16px; }
+  .section-title span:first-child { color: var(--lime); margin-right: .1em; }
+  .section-sub { color: var(--dim); font-size: 18px; margin-bottom: 48px; max-width: 56ch; }
 
-  .pass-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .pass { background: var(--panel); border-radius: 14px; overflow: hidden; }
-  .pass img { width: 100%; height: 200px; object-fit: cover; display: block; }
-  .pass .pbody { padding: 18px 20px 22px; }
-  .pass h3 { font-size: 19px; margin-bottom: 6px; }
-  .pass p { color: var(--dim); font-size: 15px; }
+  .pass-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .pass { display: flex; flex-direction: column; background: var(--panel); border-radius: 14px; overflow: hidden; }
+  .pass img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
+  .pass .pbody { flex: 1; padding: 24px 24px 20px; }
+  .pass h3 { font-size: 23px; margin-bottom: 8px; }
+  .pass p { color: var(--dim); font-size: 16px; line-height: 1.6; }
 
-  .prisrad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .pris { background: var(--panel); border: 1px solid #2b2f39; border-radius: 14px; padding: 28px 26px; text-align: center; }
-  .pris.populär { border-color: var(--lime); position: relative; }
-  .pris.populär::before { content: "Populärast"; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--lime); color: var(--bg); font-size: 12px; font-weight: 700; padding: 3px 14px; border-radius: 99px; }
-  .pris h3 { font-size: 17px; color: var(--dim); font-weight: 400; margin-bottom: 10px; }
-  .pris .belopp { font-size: 40px; font-weight: 700; }
-  .pris .belopp small { font-size: 15px; color: var(--dim); font-weight: 400; }
-  .pris ul { list-style: none; padding: 0; margin: 18px 0 0; color: var(--dim); font-size: 15px; line-height: 2; white-space: pre-line; }
+  .prisrad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; align-items: stretch; }
+  .pris { position: relative; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 36px 28px 28px; }
+  .pris.populär { border: 2px solid var(--lime); background: var(--panel-hi); padding: 35px 27px 27px; }
+  .pris.populär::before { content: "Populärast"; position: absolute; top: -14px; left: 26px; background: var(--lime); color: var(--bg); font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; font-size: 13px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; line-height: 1; padding: 7px 14px; border-radius: 999px; }
+  .pris h3 { font-size: 15px; color: var(--dim); letter-spacing: .14em; text-transform: uppercase; margin-bottom: 16px; }
+  .pris .belopp { font-family: 'Outfit', 'Segoe UI', system-ui, sans-serif; font-size: clamp(48px, 5vw, 60px); font-weight: 700; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .pris .belopp small { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; font-size: 16px; color: var(--dim); font-weight: 400; letter-spacing: 0; }
+  .pris ul { flex: 1; list-style: none; padding: 20px 0 0; margin: 24px 0 0; border-top: 1px solid var(--line); color: var(--soft); font-size: 16px; line-height: 1.9; white-space: pre-line; }
 
   .kontakt { background: var(--lime); color: var(--bg); }
-  .kontakt .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
-  .kontakt h2 { font-size: 34px; }
-  .kontakt p { font-weight: 500; white-space: pre-line; margin-top: 14px; }
+  .kontakt .wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .kontakt h2 { font-size: clamp(38px, 5vw, 60px); text-transform: uppercase; line-height: .98; letter-spacing: -.015em; }
+  .kontakt p { font-size: 18px; line-height: 1.75; white-space: pre-line; margin-top: 24px; }
+  .kontakt img { display: block; height: auto; aspect-ratio: 16 / 11; object-fit: cover; }
+  .kontakt :focus-visible { outline-color: var(--bg); }
 
-  footer { text-align: center; padding: 26px; color: var(--dim); font-size: 13px; }
+  footer { text-align: center; padding: 32px 24px; color: var(--dim); font-size: 14px; border-top: 1px solid var(--line); }
 
+  /* SiteKit-delar i gymmets ton: samma typsnitt, accent, hörn och rytm som resten av sidan. */
+  .kit-gym { --kit-accent: var(--lime); --kit-bg: var(--bg); --kit-ink: var(--text); --kit-line: var(--line); --kit-on: var(--bg); }
+  .kit-gym .kit-section { padding: 104px 0; border-top: 0; }
+  .kit-gym .kit-wrap { max-width: 1120px; }
+  .kit-gym .kit-wrap > h2 { font-size: clamp(34px, 4.6vw, 52px); text-transform: uppercase; letter-spacing: -.01em; line-height: 1.1; margin-bottom: 40px; }
+  .kit-gym .kit-section h3 { font-size: 23px; line-height: 1.2; margin: 20px 0 8px; }
+  .kit-gym .kit-section p, .kit-gym .kit-detail p { max-width: 62ch; color: var(--soft); }
+  .kit-gym .kit-section img { border-radius: 14px; }
+  .kit-gym .kit-button, .kit-gym .kit-filter button, .kit-gym .kit-next, .kit-gym .kit-back, .kit-gym .kit-form button {
+    min-height: 48px; padding: 0 24px; border-radius: 999px; font: 700 15px/1.3 'Outfit', 'Segoe UI', system-ui, sans-serif; letter-spacing: .02em;
+    transition: background-color .15s ease-out, border-color .15s ease-out, color .15s ease-out;
+  }
+  .kit-gym .kit-button:not([aria-disabled=true]):hover, .kit-gym .kit-form button[type=submit]:hover { background: var(--lime-hi); border-color: var(--lime-hi); }
+  /* Ej kopplade knappar: streckad kontur och dämpad text, så att de inte läses som en riktig handling. */
+  .kit-gym .kit-button[aria-disabled=true] { background: transparent; color: var(--dim); border: 1px dashed var(--field); opacity: 1; cursor: not-allowed; }
+  .kit-gym .kit-link-note, .kit-gym .kit-note { font: 400 14px/1.5 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--dim); }
+  .kit-gym .pass > .kit-button { align-self: flex-start; margin: 4px 24px 12px; }
+  .kit-gym .pass > .kit-link-note { margin: 0 24px 24px; }
+  .kit-gym .pris > .kit-button { width: 100%; margin: 28px 0 0; }
+  .kit-gym .pris > .kit-link-note { margin: 10px 0 0; text-align: center; }
+  .kit-gym .kit-filter { gap: 8px; margin: 0 0 32px; }
+  .kit-gym .kit-filter button { min-height: 44px; padding: 0 18px; font-size: 15px; background: transparent; color: var(--text); border: 1px solid var(--field); }
+  .kit-gym .kit-filter button:hover { border-color: var(--text); }
+  .kit-gym .kit-filter button[aria-pressed=true] { background: var(--lime); color: var(--bg); border-color: var(--lime); }
+
+  /* Tränare: tonat band, och platshållarbilderna i sidans mörka palett (riktiga bilder påverkas inte). */
+  .kit-gym [data-section="trainers"] { background: var(--band); }
+  .kit-gym [data-section="trainers"] .kit-grid { gap: 32px; }
+  .kit-gym [data-section="trainers"] img[src^="data:image/svg+xml"] { filter: invert(1) brightness(.92); }
+
+  /* Förfrågan: rubrik och ingress till vänster, formuläret till höger på stora skärmar. */
+  .kit-gym [data-section="enquiry"] { background: var(--band); }
+  .kit-gym .kit-form { max-width: 640px; }
+  .kit-gym .kit-form legend { font: 700 20px/1.3 'Outfit', 'Segoe UI', system-ui, sans-serif; color: var(--text); margin: 40px 0 0; padding: 0; }
+  .kit-gym .kit-form fieldset:first-of-type legend { margin-top: 0; }
+  .kit-gym .kit-form label { font: 700 15px/1.5 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--text); margin: 16px 0; }
+  .kit-gym .kit-form input, .kit-gym .kit-form textarea, .kit-gym .kit-form select {
+    font: 400 16px/1.5 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); border: 1px solid var(--field); border-radius: 10px; padding: 12px 14px;
+  }
+  .kit-gym .kit-form input::placeholder, .kit-gym .kit-form textarea::placeholder { color: var(--dim); opacity: 1; }
+  .kit-gym .kit-form input:focus-visible, .kit-gym .kit-form textarea:focus-visible, .kit-gym .kit-form select:focus-visible { border-color: var(--lime); outline-offset: 2px; }
+  .kit-gym .kit-form .kit-actions { margin-top: 32px; }
+  .kit-gym .kit-form [role=status] { font-size: 15px; color: var(--dim); margin: 8px 0 0; }
+  .kit-gym .kit-progress { font: 700 13px/1.5 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--dim); }
+
+  .kit-gym .kit-detail { border-bottom-color: var(--line); max-width: 820px; }
+  .kit-gym .kit-detail summary { font: 700 19px/1.4 'Outfit', 'Segoe UI', system-ui, sans-serif; padding: 18px 0; }
+  .kit-gym .kit-detail summary::marker { color: var(--lime); }
+  .kit-gym .kit-detail p { margin-top: 0; }
+
+  .kit-gym [data-section="contact"] { background: var(--panel); }
+  .kit-gym .kit-contact h3 { font-size: 26px; margin-top: 0; }
+  .kit-gym .kit-contact address { color: var(--soft); margin: 12px 0 4px; }
+  .kit-gym [data-section="contact"] .kit-actions { margin-top: 0; gap: 12px; }
+  .kit-gym [data-section="contact"] .kit-actions > .kit-link-note { flex-basis: 100%; margin: -4px 0 8px; }
+
+  @media (min-width: 960px) {
+    .kit-gym [data-section="enquiry"] .kit-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); column-gap: 72px; align-items: start; }
+    .kit-gym [data-section="enquiry"] .kit-wrap > h2 { grid-column: 1; grid-row: 1; margin-bottom: 16px; }
+    .kit-gym [data-section="enquiry"] .kit-wrap > p { grid-column: 1; grid-row: 2; margin: 0; color: var(--dim); font-size: 18px; }
+    .kit-gym [data-section="enquiry"] .kit-form { grid-column: 2; grid-row: 1 / span 3; max-width: none; }
+    .kit-gym [data-section="faq"] .kit-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); column-gap: 72px; align-items: start; }
+    .kit-gym [data-section="faq"] .kit-wrap > h2 { grid-column: 1; grid-row: 1 / span 3; margin: 0; }
+    .kit-gym [data-section="faq"] .kit-detail { grid-column: 2; max-width: none; }
+    .kit-gym [data-section="faq"] .kit-detail:first-of-type { border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 900px) {
+    .pass-grid, .prisrad { gap: 16px; }
+    .pass .pbody { padding: 20px 20px 16px; }
+    .kit-gym .pass > .kit-button { margin: 4px 20px 12px; }
+    .kit-gym .pass > .kit-link-note { margin: 0 20px 20px; }
+    .pris, .pris.populär { padding-left: 22px; padding-right: 22px; }
+    .kontakt .wrap { gap: 40px; }
+    .hero { min-height: clamp(500px, 70vh, 680px); }
+  }
+  @media (min-width: 600px) and (max-width: 900px) {
+    /* Surfplatta: passen som liggande kort i en spalt i stället för tre trånga. */
+    .pass-grid { grid-template-columns: 1fr; gap: 20px; }
+    .pass { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); grid-template-rows: auto auto 1fr; }
+    .pass img { grid-column: 1; grid-row: 1 / span 3; height: 100%; aspect-ratio: auto; min-height: 220px; }
+    .pass .pbody { grid-column: 2; padding: 24px 24px 12px; }
+    .kit-gym .pass > .kit-button, .kit-gym .pass > .kit-link-note { grid-column: 2; justify-self: start; }
+    .kit-gym .pass > .kit-link-note { align-self: start; }
+  }
   @media (max-width: 760px) {
-    .hero h1 { font-size: 38px; }
+    body { font-size: 16px; }
+    .topbar .wrap { min-height: 68px; }
+    .logo { font-size: 18px; letter-spacing: .1em; }
+    .topbar .cta-liten { padding: 0 18px; font-size: 14px; }
+    .hero { min-height: 0; }
+    .hero::after { background: linear-gradient(180deg, rgba(22, 24, 29, .82) 0%, rgba(22, 24, 29, .9) 100%); }
+    .hero .wrap { padding-top: 72px; padding-bottom: 80px; }
+    .hero h1 { margin: 20px 0; }
+    .hero p { margin-bottom: 32px; }
+    section, .kit-gym .kit-section { padding: 72px 0; }
+    .section-sub { margin-bottom: 32px; }
+    .kit-gym .kit-wrap { padding: 0 24px; }
+    .kit-gym .kit-wrap > h2 { margin-bottom: 28px; }
+    .kit-gym .kit-form button[type=submit] { flex: 1 1 100%; }
     .pass-grid, .prisrad, .kontakt .wrap { grid-template-columns: 1fr; }
-    section { padding: 52px 0; }
+    .pass-grid { gap: 24px; }
+    .pass img { aspect-ratio: 16 / 10; }
+    .prisrad { gap: 32px; }
+    .kit-gym .kit-filter button { flex: 0 0 auto; padding: 0 16px; }
+    .kit-gym [data-section="contact"] .kit-actions > .kit-button { flex: 1 1 100%; }
   }
 </style>
 </head>
