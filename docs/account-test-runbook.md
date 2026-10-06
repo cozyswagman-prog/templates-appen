@@ -59,8 +59,9 @@ lanseringsgodkännande. Inga tester körs automatiskt av paketverktyget.
    - `202610030001_projects.sql`
    - `202610040001_private_images.sql`
    - `202610040002_image_lifecycle.sql`
+   - `202610060001_backup_read.sql` (läsrätt för `service_role`, krävs av backupverktyget)
 3. Kör en migration i taget. Dokumentera filhash och resultat utanför paketet.
-   Vid första felet: stoppa. Varje fil har egen transaktion, men alla tre filer
+   Vid första felet: stoppa. Varje fil har egen transaktion, men alla filer
    tillsammans är inte en enda transaktion. Tidigare lyckade steg kan finnas kvar.
    Gör ingen blind omkörning, återställning eller automatisk borttagning av miljön.
 4. Verifiera faktiska rättigheter, RLS, RPC-rättigheter, privat `project-images`-

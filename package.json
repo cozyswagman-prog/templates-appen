@@ -19,7 +19,9 @@
     "version:check": "node tools/publication-version.cjs check",
     "start:local": "node tools/local-version-server.cjs",
     "accounts:prepare-kit": "node tools/account-test-kit.cjs create",
-    "accounts:check-kit": "node tools/account-test-kit.cjs check"
+    "accounts:check-kit": "node tools/account-test-kit.cjs check",
+    "backup:create": "node tools/backup-create.cjs",
+    "backup:verify": "node tools/backup-verify.cjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.117.2",

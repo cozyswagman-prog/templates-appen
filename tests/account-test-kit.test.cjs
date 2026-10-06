@@ -5,7 +5,7 @@ const destination = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'templ
 const root = path.resolve(__dirname, '..');
 test('Account kit copies migrations in order with pending live cases and a disabled example', () => {
   const directory = destination(), result = createKit(directory);
-  assert.deepEqual(result, { status: 'LOCAL_FILES_VERIFIED', files: 11, migrations: 3, liveTests: 'NOT_RUN', connected: false, approvedForRelease: false });
+  assert.deepEqual(result, { status: 'LOCAL_FILES_VERIFIED', files: 12, migrations: 4, liveTests: 'NOT_RUN', connected: false, approvedForRelease: false });
   const manifest = JSON.parse(fs.readFileSync(path.join(directory, 'manifest.json')));
   for (const name of manifest.migrationOrder) assert.deepEqual(fs.readFileSync(path.join(directory, name)), fs.readFileSync(path.join(root, 'supabase', name)));
   const acceptance = JSON.parse(fs.readFileSync(path.join(directory, 'acceptance-template.json')));
