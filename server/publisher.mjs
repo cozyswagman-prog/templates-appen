@@ -29,6 +29,14 @@ export const sha256 = async bytes => hex(await crypto.subtle.digest('SHA-256', b
 const mimeOf = name => MIME[name.split('.').pop()] || 'application/octet-stream';
 const prefixOf = (siteId, versionId) => 'sites/' + siteId + '/v/' + versionId + '/';
 const SITE_ID = /^[a-z0-9][a-z0-9-]{2,62}$/, VERSION_ID = /^[0-9a-f-]{36}$/;
+const ASSET = /^(?:images\/bild-\d+\.(?:png|jpg|webp|gif)|fonts\/(?:[a-z0-9-]+\.woff2|LICENS\.txt))$/;
+
+// Pin only generated resource URLs. Page links keep their normal public addresses.
+function pinAssets(html, versionId) {
+  const pinned = name => ASSET.test(name) ? '_v/' + versionId + '/' + name : name;
+  return html.replace(/\b(src|href)=(['"])([^'"<>]+)\2/g, (all, attr, quote, name) => attr + '=' + quote + pinned(name) + quote)
+    .replace(/url\((['"]?)([^'"()\s]+)\1\)/g, (all, quote, name) => 'url(' + quote + pinned(name) + quote + ')');
+}
 
 // Samma grundregler som tools/render-project.cjs: känd mall, sidor med numrerade textfält,
 // bilder bara som inbäddade PNG/JPEG/WebP/GIF. Webbläsaren får aldrig skicka in färdig HTML.
@@ -89,7 +97,9 @@ export function createPublisher({ bucket, sites, render, newId = () => crypto.ra
       if (!names.includes('index.html') || names.length > MAX_FILES || names.some(n => !FILE.test(n))) throw fail('invalid', 'Renderingen gav otillåtna filer.');
       const versionId = newId(), prefix = prefixOf(siteId, versionId), files = [];
       for (const name of names.sort()) {
-        const data = output.get(name), bytes = typeof data === 'string' ? encoder.encode(data) : new Uint8Array(data);
+        const data = output.get(name);
+        const bytes = name.endsWith('.html') ? encoder.encode(pinAssets(typeof data === 'string' ? data : new TextDecoder().decode(data), versionId))
+          : typeof data === 'string' ? encoder.encode(data) : new Uint8Array(data);
         const hash = await sha256(bytes);
         await bucket.put(prefix + name, bytes, { contentType: mimeOf(name), sha256: hash });
         files.push({ name, bytes: bytes.length, sha256: hash });
@@ -111,8 +121,8 @@ export function createPublisher({ bucket, sites, render, newId = () => crypto.ra
       if (!await sites.swap(siteId, revision, versionId)) throw fail('conflict', 'Sajten ändrades under återställningen. Ladda om och försök igen.');
       return { versionId, previous: site.active, revision: revision + 1 };
     },
-    // Besökare: värdnamn -> aktiv version -> fil. Versionen tas aldrig från adressen, så utkast och
-    // inaktiva versioner kan inte nås. Bara filnamn som exporten själv skapar serveras.
+    // HTML uses the current version; pinned assets may use a previously published
+    // version of this same site. A complete upload that lost the swap stays private.
     async serve(host, pathname, { ifNoneMatch } = {}) {
       const site = await sites.byHost(String(host || '').toLowerCase().split(':')[0]);
       const respond = (status, body, headers = {}) => ({ status, body, headers: { ...SECURITY_HEADERS, ...headers } });
@@ -120,11 +130,18 @@ export function createPublisher({ bucket, sites, render, newId = () => crypto.ra
       let name;
       try { name = decodeURIComponent(pathname || '/').replace(/^\/+/, ''); } catch { name = '\0'; }
       if (name === '') name = 'index.html';
+      let versionId = site.active, pinned = false;
+      const resource = /^_v\/([0-9a-f-]{36})\/(.+)$/.exec(name);
+      if (resource) {
+        if (!ASSET.test(resource[2]) || !await sites.wasPublished(site.siteId, resource[1]))
+          return respond(404, 'Sidan finns inte.', { 'Content-Type': MIME.txt, 'Cache-Control': 'no-store' });
+        versionId = resource[1]; name = resource[2]; pinned = true;
+      }
       if (!FILE.test(name)) return respond(404, 'Sidan finns inte.', { 'Content-Type': MIME.txt, 'Cache-Control': 'no-store' });
-      const object = await bucket.get(prefixOf(site.siteId, site.active) + name);
+      const object = await bucket.get(prefixOf(site.siteId, versionId) + name);
       if (!object) return respond(404, 'Sidan finns inte.', { 'Content-Type': MIME.txt, 'Cache-Control': 'no-store' });
       const etag = '"' + object.sha256 + '"';
-      const common = { ETag: etag, 'Cache-Control': 'public, max-age=0, must-revalidate', 'X-Templates-Version': site.active };
+      const common = { ETag: etag, 'Cache-Control': pinned ? 'public, max-age=31536000, immutable' : 'public, max-age=0, must-revalidate', 'X-Templates-Version': versionId };
       if (ifNoneMatch && ifNoneMatch.split(',').map(s => s.trim()).includes(etag)) return respond(304, null, common);
       return respond(200, object.bytes, { ...common, 'Content-Type': mimeOf(name) });
     },
@@ -134,7 +151,7 @@ export function createPublisher({ bucket, sites, render, newId = () => crypto.ra
 
 // Minneslagring med samma beteende som R2/D1-adaptrarna; används i tester och lokala prov.
 export function memoryStores() {
-  const objects = new Map(), siteRows = new Map();
+  const objects = new Map(), siteRows = new Map(), published = new Set();
   const bucket = {
     async put(key, bytes, { contentType, sha256: hash }) { objects.set(key, { bytes: new Uint8Array(bytes), size: bytes.length, sha256: hash, contentType }); },
     async head(key) { const o = objects.get(key); return o ? { size: o.size, sha256: o.sha256 } : null; },
@@ -144,11 +161,12 @@ export function memoryStores() {
   const sites = {
     async get(siteId) { const s = siteRows.get(siteId); return s ? { ...s } : null; },
     async byHost(host) { for (const s of siteRows.values()) if (s.host === host) return { ...s }; return null; },
+    async wasPublished(siteId, versionId) { return published.has(siteId + '/' + versionId); },
     async listByOwner(ownerId) { return [...siteRows.values()].filter(s => s.ownerId === ownerId).map(s => ({ ...s })); },
     async swap(siteId, expectedRevision, versionId) {
       const s = siteRows.get(siteId);
       if (!s || s.revision !== expectedRevision) return false;
-      s.active = versionId; s.revision++; return true;
+      s.active = versionId; s.revision++; published.add(siteId + '/' + versionId); return true;
     },
     async create(siteId, host, ownerId = null) {
       if (!SITE_ID.test(siteId)) throw fail('invalid', 'Ogiltigt sajt-id.');

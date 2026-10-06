@@ -10,6 +10,14 @@ create table if not exists sites (
 );
 -- Piloten: en sajt per konto, även om två flikar skapar samtidigt. Sajter utan ägare (prov) undantas.
 create unique index if not exists sites_one_per_owner on sites (owner_id);
+-- Only versions that committed a pointer switch may expose immutable resource URLs.
+create table if not exists published_versions (
+  site_id text not null references sites(id), version_id text not null,
+  published_revision integer not null, primary key (site_id, version_id)
+);
+-- Safe upgrade: register the current live versions only, never unfinished uploads.
+insert or ignore into published_versions (site_id, version_id, published_revision)
+  select id, active_version, revision from sites where active_version is not null;
 -- Abonnemang (T07): behandlade Stripe-händelser (en gång per id) och senaste kända status per prenumeration.
 create table if not exists billing_events (id text primary key, type text not null, created integer not null, result text not null, processed_at text not null);
 create table if not exists subscriptions (

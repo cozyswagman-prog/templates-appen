@@ -47,10 +47,14 @@ export function d1Sites(db) {
   return {
     get: async id => row(await db.prepare('select id, host, owner_id, active_version, revision from sites where id = ?').bind(id).first()),
     byHost: async host => row(await db.prepare('select id, host, owner_id, active_version, revision from sites where host = ?').bind(host).first()),
-    // En enda UPDATE med revisionsvillkor: atomiskt jämför-och-byt i D1.
+    wasPublished: async (id, versionId) => !!await db.prepare('select 1 from published_versions where site_id = ? and version_id = ?').bind(id, versionId).first(),
+    // D1 batch is transactional: public asset access and the pointer switch commit together.
     async swap(id, expected, versionId) {
-      const r = await db.prepare('update sites set active_version = ?, revision = revision + 1 where id = ? and revision = ?').bind(versionId, id, expected).run();
-      return r.meta.changes === 1;
+      const result = await db.batch([
+        db.prepare('update sites set active_version = ?, revision = revision + 1 where id = ? and revision = ?').bind(versionId, id, expected),
+        db.prepare('insert or ignore into published_versions (site_id, version_id, published_revision) select id, active_version, revision from sites where id = ? and active_version = ? and revision = ?').bind(id, versionId, expected + 1)
+      ]);
+      return result[0].meta.changes === 1;
     },
     listByOwner: async ownerId => ((await db.prepare('select id, host, owner_id, active_version, revision from sites where owner_id = ? order by id').bind(ownerId).all()).results || []).map(row),
     async create(id, host, ownerId = null) {

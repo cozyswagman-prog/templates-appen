@@ -25,7 +25,10 @@ test('A published site serves exactly the rendered files with safe headers and r
   const expected = renderProject(project);
   for (const [name, data] of expected) {
     const r = await publisher.serve('QA-CAFE.sites.test:443', '/' + name);
-    assert.equal(r.status, 200, name); assert.deepEqual(Buffer.from(r.body), bytesOf(data), name);
+    assert.equal(r.status, 200, name);
+    // The publication layer changes only resource URLs; renderer baselines stay intact.
+    const actual = name.endsWith('.html') ? Buffer.from(body(r).replaceAll('_v/' + result.versionId + '/', '')) : Buffer.from(r.body);
+    assert.deepEqual(actual, bytesOf(data), name);
   }
   const index = await publisher.serve('qa-cafe.sites.test', '/');
   assert.match(body(index), /QA Café Göteborg – Hem ÅÄÖ/);
@@ -105,4 +108,49 @@ test('Customer text is published as text, and unsafe input is refused before any
     { ...cafe('X'), name: '' }
   ]) await assert.rejects(publisher.publish('qa-cafe', bad), { code: 'invalid' });
   assert.equal(bucket.keys().length, written, 'refused projects write nothing');
+});
+
+test('A page keeps its own images and fonts when a new version is published', async () => {
+  const { bucket, sites } = memoryStores();
+  await sites.create('pinned-cafe', 'pinned.sites.test');
+  const publisher = createPublisher({ bucket, sites, render: p => new Map([
+    ['index.html', '<a href="meny.html">Meny</a><img src="images/bild-1.png"><style>@font-face{src:url(\'fonts/inter-400.woff2\')}</style>'],
+    ['images/bild-1.png', p.name], ['fonts/inter-400.woff2', 'font-' + p.name]
+  ]) });
+  const first = await publisher.publish('pinned-cafe', cafe('old'));
+  const oldPage = body(await publisher.serve('pinned.sites.test', '/'));
+  assert.match(oldPage, new RegExp('_v/' + first.versionId + '/images/bild-1.png'));
+  assert.match(oldPage, new RegExp('_v/' + first.versionId + '/fonts/inter-400.woff2'));
+  assert.match(oldPage, /href="meny.html"/, 'page navigation stays at stable public URLs');
+  const second = await publisher.publish('pinned-cafe', cafe('new'));
+  for (const [name, expected] of [['images/bild-1.png', 'old'], ['fonts/inter-400.woff2', 'font-old']]) {
+    const resource = await publisher.serve('pinned.sites.test', '/_v/' + first.versionId + '/' + name);
+    assert.equal(resource.status, 200); assert.equal(body(resource), expected);
+    assert.equal(resource.headers['X-Templates-Version'], first.versionId);
+    assert.match(resource.headers['Cache-Control'], /immutable/);
+    assert.equal((await publisher.serve('pinned.sites.test', '/_v/' + first.versionId + '/' + name, { ifNoneMatch: resource.headers.ETag })).status, 304);
+  }
+  assert.equal(body(await publisher.serve('pinned.sites.test', '/images/bild-1.png')), 'new');
+  assert.match(body(await publisher.serve('pinned.sites.test', '/')), new RegExp('_v/' + second.versionId + '/'));
+  await publisher.rollback('pinned-cafe', first.versionId);
+  assert.match(body(await publisher.serve('pinned.sites.test', '/')), new RegExp('_v/' + first.versionId + '/'));
+});
+
+test('Pinned URLs cannot expose losing uploads, another site, manifests or old HTML', async () => {
+  const { bucket, sites } = memoryStores();
+  await sites.create('pinned-cafe', 'pinned.sites.test');
+  await sites.create('other-cafe', 'other.sites.test');
+  const render = () => new Map([['index.html','<img src="images/bild-1.png">'],['images/bild-1.png','image']]);
+  const publisher = createPublisher({ bucket, sites, render });
+  const live = await publisher.publish('pinned-cafe', cafe('live'));
+  const other = await publisher.publish('other-cafe', cafe('other'));
+  const lost = '00000000-0000-4000-8000-000000000099';
+  const loser = createPublisher({ bucket, sites: { ...sites, swap: async () => false }, render, newId: () => lost });
+  await assert.rejects(loser.publish('pinned-cafe', cafe('loser')), {code:'conflict'});
+  assert.ok(bucket.keys().some(key => key.includes(lost + '/manifest.json')), 'losing version is complete but private');
+  for (const url of [
+    '/_v/' + lost + '/images/bild-1.png', '/_v/' + other.versionId + '/images/bild-1.png',
+    '/_v/' + live.versionId + '/index.html', '/_v/' + live.versionId + '/manifest.json',
+    '/_v/' + live.versionId + '/images/%2e%2e/index.html'
+  ]) assert.equal((await publisher.serve('pinned.sites.test', url)).status,404,url);
 });
