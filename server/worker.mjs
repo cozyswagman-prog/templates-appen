@@ -1,10 +1,13 @@
-// Cloudflare Worker för publicerade kundsajter (prototyp T06).
+// Cloudflare Worker för publicerade kundsajter (prototyp).
 //   Bindningar: SITES (R2-bucket), DB (D1, schema i server/schema.sql),
+//   PUBLISH_HOST + APP_ORIGIN + SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY för det inloggade API:t,
 //   CONTROL_HOST + CONTROL_TOKEN (hemlighet) för provets styrgränssnitt, ALLOW_FAULTS='1' endast lokalt.
-// Besökare: GET/HEAD på kundens värdnamn -> aktiv version. Publicering i drift ska gå via appens
-// inloggade API med ägar- och abonnemangskontroll; styrgränssnittet här är bara för lokala prov.
+// Besökare: GET/HEAD på kundens värdnamn -> aktiv version. Kunder publicerar via PUBLISH_HOST/api/publish
+// med sin egen inloggning; styrgränssnittet är bara för lokala prov och ska inte konfigureras i drift.
 import { createPublisher } from './publisher.mjs';
 import { renderSite } from './render-worker.mjs';
+import { createAccountSource } from './account-source.mjs';
+import { handlePublishRequest } from './publish-api.mjs';
 
 export function r2Bucket(binding) {
   return {
@@ -17,16 +20,16 @@ export function r2Bucket(binding) {
   };
 }
 export function d1Sites(db) {
-  const row = r => r && { siteId: r.id, host: r.host, active: r.active_version, revision: r.revision };
+  const row = r => r && { siteId: r.id, host: r.host, ownerId: r.owner_id, active: r.active_version, revision: r.revision };
   return {
-    get: async id => row(await db.prepare('select id, host, active_version, revision from sites where id = ?').bind(id).first()),
-    byHost: async host => row(await db.prepare('select id, host, active_version, revision from sites where host = ?').bind(host).first()),
+    get: async id => row(await db.prepare('select id, host, owner_id, active_version, revision from sites where id = ?').bind(id).first()),
+    byHost: async host => row(await db.prepare('select id, host, owner_id, active_version, revision from sites where host = ?').bind(host).first()),
     // En enda UPDATE med revisionsvillkor: atomiskt jämför-och-byt i D1.
     async swap(id, expected, versionId) {
       const r = await db.prepare('update sites set active_version = ?, revision = revision + 1 where id = ? and revision = ?').bind(versionId, id, expected).run();
       return r.meta.changes === 1;
     },
-    create: (id, host) => db.prepare('insert into sites (id, host, revision) values (?, ?, 0)').bind(id, host).run()
+    create: (id, host, ownerId = null) => db.prepare('insert into sites (id, host, owner_id, revision) values (?, ?, ?, 0)').bind(id, host, ownerId).run()
   };
 }
 async function equalSecret(a, b) {
@@ -40,6 +43,10 @@ export default {
     const url = new URL(request.url), host = url.hostname.toLowerCase();
     let bucket = r2Bucket(env.SITES);
     const sites = d1Sites(env.DB);
+    if (env.PUBLISH_HOST && host === env.PUBLISH_HOST) {
+      const source = createAccountSource({ url: env.SUPABASE_URL, publishableKey: env.SUPABASE_PUBLISHABLE_KEY });
+      return handlePublishRequest(request, { env, sites, source, publisher: createPublisher({ bucket, sites, render: renderSite }) });
+    }
     if (env.CONTROL_HOST && host === env.CONTROL_HOST) {
       const token = (request.headers.get('Authorization') || '').replace(/^Bearer /, '');
       if (!env.CONTROL_TOKEN || !await equalSecret(token, env.CONTROL_TOKEN)) return json(401, { error: 'Ej behörig.' });
@@ -50,7 +57,7 @@ export default {
       const publisher = createPublisher({ bucket, sites, render: renderSite });
       const m = /^\/sites\/([a-z0-9-]+)\/(publish|rollback)$/.exec(url.pathname);
       try {
-        if (request.method === 'POST' && url.pathname === '/sites') { const { id, host: siteHost } = await request.json(); await sites.create(id, siteHost); return json(201, { id }); }
+        if (request.method === 'POST' && url.pathname === '/sites') { const { id, host: siteHost, ownerId } = await request.json(); await sites.create(id, siteHost, ownerId); return json(201, { id }); }
         if (request.method === 'POST' && m && m[2] === 'publish') { const { project, expectedRevision } = await request.json(); return json(200, await publisher.publish(m[1], project, { expectedRevision })); }
         if (request.method === 'POST' && m && m[2] === 'rollback') { const { versionId, expectedRevision } = await request.json(); return json(200, await publisher.rollback(m[1], versionId, { expectedRevision })); }
         return json(404, { error: 'Okänd åtgärd.' });

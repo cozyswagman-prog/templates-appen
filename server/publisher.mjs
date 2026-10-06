@@ -3,7 +3,7 @@
 //
 //   bucket: put(key, bytes, { contentType, sha256 }), head(key) -> { size, sha256 } | null,
 //           get(key) -> { bytes, size, sha256, contentType } | null
-//   sites:  get(siteId), byHost(host) -> { siteId, host, active, revision } | null,
+//   sites:  get(siteId), byHost(host) -> { siteId, host, ownerId, active, revision } | null,
 //           swap(siteId, expectedRevision, versionId) -> true | false  (atomisk jämför-och-byt)
 //   render: (project) -> Map(filnamn -> Uint8Array | string)
 //
@@ -45,6 +45,20 @@ export function validateProject(project) {
       if (value.startsWith('data:') && !IMAGE.test(value)) throw fail('invalid', 'Bildfältet har en otillåten bild.');
       if (value.startsWith('templates-image:')) throw fail('invalid', 'Projektets bilder måste hämtas innan publicering.');
     }
+  }
+  // Namngivna inställningar (företagsuppgifter, nya avsnitt): samma bildregler, och en vald bild måste vara inbäddad.
+  if (project.site != null) {
+    if (typeof project.site !== 'object' || Array.isArray(project.site)) throw fail('invalid', 'Ogiltiga inställningar.');
+    const walk = v => {
+      if (typeof v === 'string') {
+        if (v.startsWith('templates-image:')) throw fail('invalid', 'Projektets bilder måste hämtas innan publicering.');
+        if (v.startsWith('data:') && !IMAGE.test(v)) throw fail('invalid', 'Bildfältet har en otillåten bild.');
+      } else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+    };
+    walk(project.site);
+    for (const page of Object.values(project.site.pages || {}))
+      for (const image of Object.values(page?.images || {}))
+        if (image && image.src != null && !IMAGE.test(image.src)) throw fail('invalid', 'Bildfältet har en otillåten bild.');
   }
   return project;
 }
@@ -135,7 +149,7 @@ export function memoryStores() {
       if (!s || s.revision !== expectedRevision) return false;
       s.active = versionId; s.revision++; return true;
     },
-    create(siteId, host) { if (!SITE_ID.test(siteId)) throw fail('invalid', 'Ogiltigt sajt-id.'); siteRows.set(siteId, { siteId, host, active: null, revision: 0 }); }
+    create(siteId, host, ownerId = null) { if (!SITE_ID.test(siteId)) throw fail('invalid', 'Ogiltigt sajt-id.'); siteRows.set(siteId, { siteId, host, ownerId, active: null, revision: 0 }); }
   };
   return { bucket, sites };
 }

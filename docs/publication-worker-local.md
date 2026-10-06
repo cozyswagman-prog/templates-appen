@@ -26,15 +26,35 @@ besökare ─▶ kundens värdnamn ─▶ aktiv version ─▶ fil (bara filnamn
 - **Projektet valideras före rendering:** känd mall, bara textfält, och bilder bara som inbäddad
   PNG/JPEG/WebP/GIF (SVG och bildreferenser till kontot avvisas). Kundtext publiceras som text.
 
+## Publicering med kundens inloggning
+
+`POST https://<PUBLISH_HOST>/api/publish` med `{ siteId, projectId, expectedRevision? }` och kundens
+Supabase-token i `Authorization`:
+
+1. Bara appens origin (`APP_ORIGIN`) får anropa. Svar på preflight ges bara till den.
+2. Workern kontrollerar inloggningen hos Supabase (`/auth/v1/user`).
+3. Bara sajtens ägare (`sites.owner_id`) får publicera. Okänd sajt och annans sajt ger samma 404.
+4. Projektet hämtas med **kundens egen token**, så RLS ger bara egna rader. Bilderna hämtas från kontots
+   privata lagring på samma sätt och kontrolleras mot sin innehållsnyckel. Workern har bara den publika
+   nyckeln. Ingen hemlig nyckel behövs, och den avvisas.
+5. Därefter samma versionsflöde som ovan. `expectedRevision` skyddar mot två flikar.
+
+`REQUIRE_PLAN='1'` nekar all publicering (402) tills abonnemangskontrollen finns (T07). Kontrollen
+av vem som får skapa en sajt med en viss ägare och ett visst värdnamn finns inte heller ännu. Styrgränssnittet
+gör det i prov, men ska inte vara konfigurerat i drift.
+
 ## Filer
 
 | Fil | Roll |
 | --- | --- |
 | `server/publisher.mjs` | Plattformsneutral kärna: publicera, återställa, visa, validera, minneslagring för tester |
-| `server/worker.mjs` | Cloudflare Worker: R2- och D1-adaptrar, besöksdel och styrgränssnitt för lokala prov |
+| `server/worker.mjs` | Cloudflare Worker: R2- och D1-adaptrar, besöksdel, `/api/publish` och styrgränssnitt för lokala prov |
+| `server/publish-api.mjs` | Det inloggade publicerings-API:t: ursprung, inloggning, ägare, felkoder |
+| `server/account-source.mjs` | Hämtar projekt och bilder från Supabase med kundens token och bildkontroll |
 | `server/render-worker.mjs`, `server/worker-globals.mjs` | Appens oförändrade renderare och typsnitt i Workers |
 | `server/schema.sql` | D1-tabellen `sites` |
 | `tests/publisher.test.cjs` | Kärnan med riktig renderare: 6 tester |
+| `tests/publish-api.test.cjs` | API:t mot simulerad Supabase med RLS-beteende: 5 tester |
 
 Workern paketeras med esbuild (`.woff2` som binary, `.txt` som text, villkoret `worker`), som wrangler gör vid
 driftsättning. Integrationsprovet i workerd (Miniflare, R2 och D1 simulerade) och i Chromium ligger i
@@ -42,10 +62,10 @@ driftsättning. Integrationsprovet i workerd (Miniflare, R2 och D1 simulerade) o
 
 ## Gränser – inte klart för drift
 
-- **Styrgränssnittet är bara för prov.** Publicering i drift ska gå via appens inloggade API, med kontroll av
-  ägare, abonnemang och projektrevision (T07).
-- **Bilder:** publiceringen tar emot projekt med inbäddade bilder. Hämtning från kontots privata lagring och
-  Sharp-bildkontrollen (fungerar inte i Workers) återstår.
+- **Abonnemang (T07)** och **skapande av sajt med ägare och värdnamn** är inte byggda. Styrgränssnittet är bara för prov.
+- **Appen har ingen Publicera-knapp än.** API:t är provat med simulerad Supabase, inte med riktiga konton.
+- **Bildkontroll:** varje bild kontrolleras mot sin innehållsnyckel, MIME-typ och storlek. Sharp-omkodningen
+  (metadata, orientering, max 1600 px) fungerar inte i Workers och återstår.
 - **Kostnad och gränser:** rendering av en tresidig sajt kräver ungefär 13 ms processortid, vilket är mer än
   gratisplanens 10 ms. Workers Paid behövs.
 - **En sidvisning mitt i en växling** kan hämta HTML från den nya versionen och en bild från den gamla, eftersom
