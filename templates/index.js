@@ -278,7 +278,7 @@ window.SiteKit = (function () {
         if(!navigator.onLine){status.textContent='Du är offline. Dina uppgifter finns kvar här; anslut till internet och försök igen.';return;}
         const submit=form.querySelector('[type=submit]');busy=true;submit.disabled=true;status.textContent='Skickar din förfrågan…';
         const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
-        try{const response=await fetch(form.dataset.endpoint,{method:'POST',body:new FormData(form),headers:{Accept:'application/json'},signal:controller.signal});if(!response.ok)throw Error();status.textContent='Tack! Din förfrågan har skickats. Bokning eller beställning gäller först efter företagets bekräftelse.';form.reset();step=0;show();}
+        try{const response=await fetch(form.dataset.endpoint,{method:'POST',body:new FormData(form),headers:{Accept:'application/json'},signal:controller.signal});if(response.status===429){status.textContent='Formuläret har nått sin gräns för tillfället. Uppgifterna finns kvar; ring eller mejla företaget.';return;}if(!response.ok)throw Error();status.textContent='Förfrågan har tagits emot av formulärtjänsten. Leverans till företagets inkorg är inte bekräftad här. Bokning eller beställning gäller först efter företagets svar.';form.reset();step=0;show();}
         catch{status.textContent='Vi kunde inte bekräfta att förfrågan kom fram. Uppgifterna finns kvar; kontakta företaget eller försök igen.';}
         finally{clearTimeout(timer);busy=false;submit.disabled=false;}
       };

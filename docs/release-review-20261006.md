@@ -1,6 +1,10 @@
 # Releasegranskning av QA-grenen, 2026-10-06
 
 **Bedömning: QA-arbetet kan fortsätta, men hela produkten är inte verifierad för betald pilot.**
+Uppföljning senare samma dag: bild-/versionskoden är nu driftsatt efter verifierad
+D1-backup och additiv migrering. Se [driftprotokoll](operations.md). Senaste
+ordinarie svit är 185/185; mall-/formuläruppföljning 65/65 lokalt. Betalningskedja,
+molnets tio CPU-prov och full T08–T12-acceptans är fortfarande inte klara.
 Det riktiga abonnemangsprovet har hoppats över på ägarens begäran. En uppgiven lyckad
 fakturabetalning på 50 kr behandlas som ett separat prov, inte som bevis för Templates
 abonnemang, webhook, publiceringsrätt eller uppsägning.

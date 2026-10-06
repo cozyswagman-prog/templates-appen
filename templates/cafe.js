@@ -100,7 +100,7 @@ ${window.fontCss('lora', 'inter')}
 </style>
 <section>
   <div class="wrap">
-    <h2 class="section-title" data-slot="text" data-label="Rubrik för menysidan">Vår meny</h2>
+    <h1 class="section-title" data-slot="text" data-label="Rubrik för menysidan">Vår meny</h1>
     <p class="section-sub" data-slot="text" data-label="Undertext för menysidan">Allt bakas och bryggs här i huset</p>
     <div class="menylista">
       <h3 data-slot="text" data-label="Kategori 1 – rubrik">Kaffe &amp; dryck</h3>
@@ -129,7 +129,7 @@ ${window.fontCss('lora', 'inter')}
 </style>
 <section>
   <div class="wrap">
-    <h2 class="section-title" data-slot="text" data-label="Rubrik för kontaktsidan">Hitta till oss</h2>
+    <h1 class="section-title" data-slot="text" data-label="Rubrik för kontaktsidan">Hitta till oss</h1>
     <p class="section-sub" data-slot="text" data-label="Undertext för kontaktsidan">Vi ses över en kopp</p>
     <div class="kgrid">
       <img data-slot="image" data-label="Bild på kontaktsidan" src="${ph(800, 640, '#e3dccd', '#2f4a3a', 'Bild · t.ex. entrén eller lokalen')}" alt="">
