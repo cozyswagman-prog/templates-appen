@@ -46,7 +46,7 @@ driftsättning. Integrationsprovet i workerd (Miniflare, R2 och D1 simulerade) o
   ägare, abonnemang och projektrevision (T07).
 - **Bilder:** publiceringen tar emot projekt med inbäddade bilder. Hämtning från kontots privata lagring och
   Sharp-bildkontrollen (fungerar inte i Workers) återstår.
-- **Kostnad och gränser:** rendering av en treaddig sajt kräver ungefär 13 ms processortid, vilket är mer än
+- **Kostnad och gränser:** rendering av en tresidig sajt kräver ungefär 13 ms processortid, vilket är mer än
   gratisplanens 10 ms. Workers Paid behövs.
 - **En sidvisning mitt i en växling** kan hämta HTML från den nya versionen och en bild från den gamla, eftersom
   filnamnen är desamma mellan versioner. Versionsmärkta resursadresser löser det, men det är inte gjort.
