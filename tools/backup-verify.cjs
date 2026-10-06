@@ -1,8 +1,10 @@
-// Kontrollerar en backup (templates-backup-v1) genom att återställa den i en tom lokal Postgres
+// Kontrollerar en backup (templates-backup-v1/v2) genom att återställa den i en tom lokal Postgres
 // (PGlite) med projektets migreringar och en lokal bildlagring. Ansluter aldrig till någon tjänst
 // och ändrar aldrig backupmappen. Auth och Storage är samma fixturer som i projektets RLS-tester.
 const fs = require('node:fs'), path = require('node:path'), { createHash } = require('node:crypto');
 const { renderProject } = require('./render-project.cjs');
+const { loadBackup } = require('./account-data.cjs');
+const { V1, V2, closurePlan } = require('./backup-closures.cjs');
 const SOURCE = path.resolve(__dirname, '..');
 const PREFIX = 'templates-image:v1:', BUCKET = 'project-images';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -15,11 +17,13 @@ function walk(dir, base = dir) {
   });
 }
 
-async function verifyBackup(dir) {
+async function verifyBackup(dir, { closureBackupDirectory = null, requireClosureProtection = false } = {}) {
   const root = path.resolve(dir), results = [];
   const check = (area, name, ok, detail = null) => results.push({ area, check: name, status: ok ? 'PASS' : 'FAIL', detail });
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
-  check('backup', 'Format templates-backup-v1', manifest.format === 'templates-backup-v1', manifest.format);
+  check('backup', 'Känt backupformat v1/v2', [V1, V2].includes(manifest.format), manifest.format);
+  const safeBackup = manifest.format === V2 || closureBackupDirectory ? loadBackup(root) : null;
+  const newer = closureBackupDirectory ? loadBackup(closureBackupDirectory) : null;
 
   // 1. Filerna: exakt de som manifestet listar, med rätt storlek och SHA-256.
   const listed = new Map(manifest.files.map(f => [f.path, f])), present = walk(root).filter(f => f !== 'manifest.json');
@@ -27,7 +31,7 @@ async function verifyBackup(dir) {
   check('backup', 'Inga saknade eller extra filer jämfört med manifestet', !extra.length && !missing.length, { missing, extra });
   const bad = manifest.files.filter(f => present.includes(f.path)).filter(f => { const b = fs.readFileSync(path.join(root, f.path)); return b.length !== f.bytes || hash(b) !== f.sha256; }).map(f => f.path);
   check('backup', 'Alla filer har manifestets storlek och SHA-256 (' + manifest.files.length + ')', !bad.length, bad);
-  const images = manifest.files.filter(f => f.path.startsWith('storage/' + BUCKET + '/'));
+  let images = manifest.files.filter(f => f.path.startsWith('storage/' + BUCKET + '/'));
   const wrongKey = images.filter(f => present.includes(f.path)).filter(f => hash(fs.readFileSync(path.join(root, f.path))) !== path.basename(f.path).slice(0, 64)).map(f => f.path);
   check('backup', 'Varje bildfil stämmer med sin innehållsnyckel (' + images.length + ')', !wrongKey.length, wrongKey);
   const migrations = fs.readdirSync(path.join(SOURCE, 'supabase/migrations')).sort();
@@ -37,7 +41,20 @@ async function verifyBackup(dir) {
   check('backup', 'Backupens migreringar finns oförändrade' + (added.length ? ' (tillkomna sedan backupen: ' + added.join(', ') + ')' : ''), Array.isArray(manifest.migrations) && manifest.migrations.length > 0 && !migrationDiff.length, migrationDiff);
 
   const read = name => JSON.parse(fs.readFileSync(path.join(root, 'db', name + '.json'), 'utf8'));
-  const db = { projects: read('projects'), project_images: read('project_images'), project_image_refs: read('project_image_refs'), users: read('users') };
+  const original = safeBackup?.db || { projects: read('projects'), project_images: read('project_images'), project_image_refs: read('project_image_refs'), users: read('users') };
+  const plan = closurePlan({ manifest, db: original }, newer);
+  if (requireClosureProtection && plan.status === 'UNKNOWN_LEGACY_WITHOUT_CLOSURES') throw new Error('Äldre backup saknar stängningsregister. Ange en aktuell v2-backup från samma källa.');
+  const withClosures = plan.status === 'CAPTURED_AS_OF_BACKUP';
+  const closureSql = withClosures ? fs.readFileSync(path.join(SOURCE, 'supabase/proposals/account-closure.sql'), 'utf8') : null;
+  for (const item of [safeBackup, newer].filter(x => x?.manifest.format === V2)) {
+    if (item.manifest.closureSchemaSha256 !== hash(closureSql.replace(/\r\n/g, '\n'))) throw new Error('Stängningsschemat skiljer sig från backupen. Granska versionerna före återställning.');
+  }
+  const db = plan.db;
+  const originalImageCount = images.length;
+  images = images.filter(f => !plan.denied.has(f.path.split('/')[2]));
+  const closureProtection = { status: plan.status, asOf: plan.asOf, markers: plan.closures.length,
+    skipped: { ...plan.skipped, storageObjects: originalImageCount - images.length },
+    liveRestoreApproved: false };
 
   // 2. Tom miljö: fixturer + migreringar.
   const { PGlite } = require('@electric-sql/pglite');
@@ -54,6 +71,11 @@ async function verifyBackup(dir) {
       alter table storage.objects enable row level security;
       grant select, insert, update, delete on storage.objects to authenticated, anon;`);
     for (const name of migrations) await pg.exec(fs.readFileSync(path.join(SOURCE, 'supabase/migrations', name), 'utf8'));
+    if (withClosures) {
+      await pg.exec(closureSql);
+      // Guards precede any account, project, reservation or Storage object.
+      for (const row of plan.closures) await pg.query('insert into public.account_closures(owner_id,started_at) values($1,$2)', [row.owner_id,row.started_at]);
+    }
 
     // 3. Återställ i beroendeordning; bildreferenser återskapas av databasens egen trigger.
     for (const u of db.users) await pg.query('insert into auth.users(id) values ($1)', [u.id]);
@@ -82,6 +104,30 @@ async function verifyBackup(dir) {
       await pg.query("select set_config('request.jwt.claim.sub', $1, false)", [id || '']);
       try { return (await pg.query(sql, args)).rows; } finally { await pg.exec('reset role'); }
     };
+    if (withClosures) {
+      const stored = (await pg.query(`select count(*) total, count(*) filter(where exists(
+        select 1 from jsonb_to_recordset($1::jsonb) e(owner_id uuid,started_at timestamptz)
+        where e.owner_id=c.owner_id and e.started_at=c.started_at)) matching
+        from public.account_closures c`,[JSON.stringify(plan.closures)])).rows[0];
+      check('kontostängning', 'Alla stängningsmarkeringar finns kvar', Number(stored.total) === plan.closures.length && Number(stored.matching) === plan.closures.length);
+      let deniedOk = true;
+      for (const c of plan.closures) {
+        if ((await as(c.owner_id, 'select * from public.projects')).length || (await as(c.owner_id, 'select * from storage.objects')).length) deniedOk = false;
+        if ((await pg.query('select id from auth.users where id=$1',[c.owner_id])).rows.length) deniedOk = false;
+        // Simulate an old Auth identity restored later, then roll it back.
+        await pg.exec('begin');
+        try {
+          await pg.query('insert into auth.users(id) values($1)',[c.owner_id]);
+          await pg.exec('set local role authenticated');
+          await pg.query("select set_config('request.jwt.claim.sub',$1,true)",[c.owner_id]);
+          let code = null;
+          try { await pg.query('select * from public.save_project($1,$2,0,$3)', ['closure-test',{name:'Restore guard',templateId:'cafe',values:{}},c.owner_id]); }
+          catch (error) { code = error.code; }
+          if (code !== 'PT423') deniedOk = false;
+        } finally { await pg.exec('rollback; reset role'); }
+      }
+      check('kontostängning', 'Stängda konton hoppas över och gammal identitet kan inte spara', deniedOk);
+    }
     const failures = [];
     for (const p of db.projects) {
       try {
@@ -93,7 +139,7 @@ async function verifyBackup(dir) {
           if (typeof v === 'string' && v.startsWith(PREFIX)) {
             const name = v.slice(PREFIX.length), object = p.owner_id + '/' + name, file = path.join(root, 'storage', BUCKET, p.owner_id, name);
             if (!visible.has(object) || !fs.existsSync(file)) throw new Error('bild saknas: ' + object);
-            const bytes = fs.readFileSync(file); used.push(bytes);
+            const bytes = safeBackup?.files.get('storage/' + BUCKET + '/' + object) || fs.readFileSync(file); used.push(bytes);
             return 'data:image/' + name.split('.').pop() + ';base64,' + bytes.toString('base64');
           }
           return Array.isArray(v) ? v.map(unpack) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, unpack(x)])) : v;
@@ -122,16 +168,24 @@ async function verifyBackup(dir) {
     check('isolering', 'Ägare hålls isär och anonym läsning nekas (' + owners.length + ' ägare)', !leaks.length, leaks);
     check('isolering', 'Inga projekt ändrades av isoleringsproven', await same('projects', ['owner_id', 'id'], db.projects));
   } finally { await pg.close(); }
-  return { pass: results.filter(r => r.status === 'PASS').length, fail: results.filter(r => r.status === 'FAIL').length, results };
+  return { pass: results.filter(r => r.status === 'PASS').length, fail: results.filter(r => r.status === 'FAIL').length, closureProtection, results };
 }
 
 if (require.main === module) {
   (async () => {
-    const [dir, report] = process.argv.slice(2);
-    if (!dir || process.argv.length > 4) throw new Error('Använd: npm run backup:verify -- BACKUPMAPP [RAPPORT.json]');
-    const outcome = await verifyBackup(dir);
+    const [dir, ...args] = process.argv.slice(2);
+    let report = null, closureBackupDirectory = null, requireClosureProtection = false;
+    for (let i=0;i<args.length;i++) {
+      if (args[i] === '--closures-from' && !closureBackupDirectory && args[i+1] && !args[i+1].startsWith('--')) closureBackupDirectory=args[++i];
+      else if (args[i] === '--require-closures' && !requireClosureProtection) requireClosureProtection=true;
+      else if (!report && !args[i].startsWith('--')) report=args[i];
+      else throw new Error('Ogiltiga kontrollargument.');
+    }
+    if (!dir || dir.startsWith('--')) throw new Error('Använd: npm run backup:verify -- BACKUPMAPP [RAPPORT.json] [--closures-from NYARE_V2_BACKUP] [--require-closures]');
+    const outcome = await verifyBackup(dir, { closureBackupDirectory, requireClosureProtection });
     for (const r of outcome.results) console.log(r.status + ' | ' + r.area + ' | ' + r.check + (r.status === 'FAIL' ? ' | ' + JSON.stringify(r.detail) : ''));
     console.log(outcome.fail ? 'Backupen är INTE godkänd: ' + outcome.fail + ' fel.' : 'Backupen är godkänd lokalt (' + outcome.pass + ' kontroller). Det ersätter inte en återställning i Supabase.');
+    console.log('Kontostängningsskydd: ' + outcome.closureProtection.status + '. Ingen molnåterställning är godkänd av detta prov.');
     if (report) fs.writeFileSync(report, JSON.stringify({ checked: new Date().toISOString(), ...outcome }, null, 2), { flag: 'wx' });
     if (outcome.fail) process.exitCode = 1;
   })().catch(error => { console.error(error.message); process.exitCode = 1; });

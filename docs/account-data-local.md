@@ -5,6 +5,11 @@ befintlig `templates-backup-v1`. Det kontaktar inga tjänster, läser inga nyckl
 och har ingen funktion som raderar data. Kontot väljs av en behörig operatör efter
 identitetskontroll; detta är inte en publik API-rutt eller en inloggningskontroll.
 
+Även `templates-backup-v2` stöds. Ett markerat konto nekas automatisk portabel
+export och behöver handläggas separat. Öppna konton exporteras som tidigare.
+Manifestet skiljer `OPEN_AS_OF_BACKUP_ONLY` från v1:s
+`UNKNOWN_LEGACY_WITHOUT_CLOSURES`. Detta verifierar inte dagens kontostatus.
+
 ```powershell
 node tools/account-data.cjs prepare D:\Templates-backup\2026-10-06 KONTO-UUID D:\Templates-backup\kontoexport-NY
 ```

@@ -10,6 +10,8 @@ create table public.account_closures (
 alter table public.account_closures enable row level security;
 alter table public.account_closures force row level security;
 revoke all on public.account_closures from public, anon, authenticated, service_role;
+-- Read-only capture for backup v2. Customers retain no marker access.
+grant select on public.account_closures to service_role;
 
 create function public.account_access_open() returns boolean
 language sql stable security definer set search_path='' as $$

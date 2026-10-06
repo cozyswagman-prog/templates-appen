@@ -71,6 +71,7 @@ test('Account closure proposal: isolation, stale session, partial erasure and re
     const beforeB=await preserved();
 
     await t.test('Customers and anonymous cannot close accounts or read/remove closure markers',async()=>{
+      assert.deepEqual(await as(null,'select * from public.account_closures',[],'service_role'),[],'backup role has read-only marker access');
       for(const [role,id] of [['authenticated',A],['authenticated',B],['anon',null]]){
         await assert.rejects(as(id,'select public.begin_account_closure($1)',[A],role),{code:'42501'});
         await assert.rejects(as(id,'select * from public.account_closures',[],role),{code:'42501'});

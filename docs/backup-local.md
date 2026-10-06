@@ -71,6 +71,55 @@ Om något fel upptäcks avslutas kommandot med felkod.
 
 ## Gränser
 
+### Kontostängningar: nytt opt-in-format v2
+
+Den nuvarande driftmiljön använder v1 och har inte fått kontostängningsprototypen.
+Det vanliga kommandot behåller därför v1. Rapporten anger uttryckligen
+`UNKNOWN_LEGACY_WITHOUT_CLOSURES`: fil-/databaskontrollen kan passera utan att
+skydd mot återaktivering av stängda konton är bevisat.
+
+För en framtida godkänd miljö med stängningsregistret används:
+
+```powershell
+npm run backup:create -- D:\Templates-backup\NY-V2 --with-closures
+npm run backup:verify -- D:\Templates-backup\NY-V2 --require-closures
+```
+
+V2 tar med `db/account_closures.json`, även markeringar vars Auth-konto redan
+är borttaget. Serverrollen har endast läsrätt till registret. Saknad tabell,
+nekad läsning eller ogiltiga markeringar stoppar körningen; den faller aldrig
+tillbaka till v1. Registret läses före och efter data/bilder. Om det har ändrats
+lämnas bara en ofullständig `.partial`-mapp. Detta är inte en transaktion över
+alla tjänster och ersätter inte stoppade skrivningar vid en verklig återställning.
+
+Den lokala verifieraren läser in stängningsschemat och markeringarna **före**
+konton, projekt och bilder. Den hoppar över dessa data för markerade konton och
+provar att även en senare återinförd gammal kontoid nekas sparning. Originalbackupen
+ändras eller gallras inte. Den kan fortfarande innehålla historiska kunddata.
+Schemahashen är bunden till `supabase/proposals/account-closure.sql`; ändrat
+schema kräver granskning, inte automatisk acceptans.
+
+Äldre v1/v2 kan kombineras med markeringar från en nyare, betrodd v2-backup:
+
+```powershell
+npm run backup:verify -- D:\Templates-backup\GAMMAL --closures-from D:\Templates-backup\NY-V2 --require-closures
+```
+
+Källprojektet måste vara samma och markeringsbackupens datum minst lika nytt.
+Registren förenas: en markering tas aldrig bort för att den saknas i den nyare
+filen. Saknade, extra eller ändrade filer underkänns. Hashar är integritetskontroll,
+inte digitala signaturer; operatören måste välja betrodda kopior.
+
+`CAPTURED_AS_OF_BACKUP` betyder bara känt vid backupens tidpunkt. Nya stängningar
+efter den tidpunkten måste hämtas från ett aktuellt skyddat register. En gammal
+backup ensam blir inte säker bara för att dess v2-kontroll passerar. Rapporten
+anger alltid `liveRestoreApproved: false`; inga molndata skrivs av kontrollen.
+
+Före aktivering i drift måste alla backupjobb övergå till v2, markeringarna
+skyddas även separat och hela återställningsrutinen kräva aktuellt register.
+SQL-prototypen får fortfarande inte driftsättas ensam. Samordnade raderingsjobb,
+publiceringsspärr och verklig tjänste-QA återstår.
+
 - **Innehåller kunddata och e-postadresser.** Förvara backupen krypterad och utanför Git
   och delade mappar.
 - **Lösenord och sessioner ingår inte.** Efter en verklig katastrof återskapas konton med

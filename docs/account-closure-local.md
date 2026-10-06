@@ -1,8 +1,8 @@
 # Kontostängning och raderingsprov – endast lokalt
 
 `supabase/proposals/account-closure.sql` är en provad SQL-prototyp, placerad
-**utanför migrationsmappen**. Den körs inte av backupverktygen, appen eller någon
-driftsättning. Den skapar en bestående stängningsmarkering per konto. Markeringen
+**utanför migrationsmappen**. Den körs bara i lokala prov och vid lokal verifiering
+av backup v2, aldrig i molnet av backupverktygen eller appen. Den skapar en bestående stängningsmarkering per konto. Markeringen
 hindrar fortsatt läsning av privata projekt/bilder samt nya sparningar,
 bildreservationer och uppladdningar. Kundens sessions-id kan fortfarande vara
 giltigt, men databasens regler nekar åtkomst.
@@ -45,10 +45,11 @@ Storage-tjänsten; en verklig implementation måste använda Storage API.
 
 ## Kvar före en verklig funktion
 
-1. Ta med stängningsmarkeringar i ny backupversion, återställning och gallring.
-   Nuvarande `templates-backup-v1` saknar dem. Därför får SQL-förslaget **inte
-   driftsättas ensamt**. Äldre backup utan markeringar måste kombineras med ett
-   aktuellt, separat raderingsregister innan åtkomst öppnas.
+1. Backup v2 och lokal återställning med stängningsmarkeringar är implementerade
+   och provade; se `backup-local.md`. V1 stöds med uttryckligen okänt
+   stängningsskydd. Driftjobben, separat aktuellt register, gallring och verklig
+   restore är ännu inte överförda. SQL-förslaget får **inte driftsättas ensamt**.
+   Åtkomst får inte öppnas från äldre backup utan att senare stängningar förenats.
 2. Samordna spärren med D1/publicering, versionsåterställning, Stripe-webhooks,
    sessioner, redan pågående anrop och uppladdningar. Supabase-låset är lokalt
    för en databastransaktion och låser inte andra tjänster. En redan hämtad

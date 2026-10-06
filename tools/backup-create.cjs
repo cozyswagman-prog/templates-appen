@@ -4,6 +4,7 @@
 // Skapar alltid en ny mapp utanför källkoden; en ofullständig körning lämnar bara en .partial-mapp.
 const fs = require('node:fs'), path = require('node:path'), { createHash } = require('node:crypto');
 const SOURCE = path.resolve(__dirname, '..');
+const { V2, normalizeClosures } = require('./backup-closures.cjs');
 const BUCKET = 'project-images', FORMAT = 'templates-backup-v1', MAX_FILE = 2 * 1024 * 1024;
 const TABLES = { projects: ['owner_id', 'id'], project_images: ['owner_id', 'name'], project_image_refs: ['owner_id', 'project_id', 'image_name'] };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -14,7 +15,7 @@ async function rows(client, table, pageSize) {
   const out = [];
   for (let from = 0; ; from += pageSize) {
     let query = client.from(table).select('*');
-    for (const column of TABLES[table]) query = query.order(column, { ascending: true });
+    for (const column of (table === 'account_closures' ? ['owner_id'] : TABLES[table])) query = query.order(column, { ascending: true });
     const { data, error } = await query.range(from, from + pageSize - 1);
     if (error?.code === '42501') throw new Error('Nyckeln saknar läsrätt till ' + table + '. Kör migreringen supabase/migrations/202610060001_backup_read.sql och kontrollera att det är den hemliga nyckeln.');
     if (error) throw new Error('Kunde inte läsa ' + table + ': ' + (error.code || error.message));
@@ -41,11 +42,18 @@ async function list(client, prefix, pageSize) {
   }
 }
 
-async function createBackup({ client, destination, now = new Date(), sourceHost = '', pageSize = 1000, log = () => {} }) {
+async function createBackup({ client, destination, now = new Date(), sourceHost = '', pageSize = 1000, includeClosures = false, log = () => {} }) {
+  if (typeof includeClosures !== 'boolean' || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 1000) throw new Error('Ogiltiga backupalternativ.');
+  if (includeClosures && !/^[a-z0-9.-]+$/.test(sourceHost)) throw new Error('Backup v2 kräver ett identifierat källprojekt.');
   const root = path.resolve(destination), partial = root + '.partial';
   if (root === SOURCE || root.startsWith(SOURCE + path.sep)) throw new Error('Backupen får inte ligga i källkoden (den innehåller kunddata).');
   if (fs.existsSync(root) || fs.existsSync(partial)) throw new Error('Målmappen finns redan; inget skrivs över.');
   const db = {};
+  const readClosures = async () => {
+    try { return normalizeClosures(await rows(client, 'account_closures', pageSize)); }
+    catch { throw new Error('Stängningsregistret kunde inte läsas fullständigt. Ingen nedgradering till v1 görs.'); }
+  };
+  if (includeClosures) db.account_closures = await readClosures();
   for (const table of Object.keys(TABLES)) { db[table] = await rows(client, table, pageSize); log(table + ': ' + db[table].length); }
   db.users = await users(client, pageSize); log('konton: ' + db.users.length);
 
@@ -80,23 +88,31 @@ async function createBackup({ client, destination, now = new Date(), sourceHost 
     write('storage/' + BUCKET + '/' + object, bytes);
   }
   log('bildfiler: ' + objects.length);
+  if (includeClosures && JSON.stringify(db.account_closures) !== JSON.stringify(await readClosures())) {
+    throw new Error('Stängningsregistret ändrades under backupen. Kör om till en ny målmapp.');
+  }
   for (const name of ['projects', 'project_images', 'project_image_refs', 'users']) write('db/' + name + '.json', Buffer.from(JSON.stringify(db[name], null, 1)));
+  if (includeClosures) write('db/account_closures.json', Buffer.from(JSON.stringify(db.account_closures, null, 1)));
   const manifest = {
-    format: FORMAT, created: now.toISOString(), source: sourceHost,
+    format: includeClosures ? V2 : FORMAT, created: now.toISOString(), source: sourceHost,
+    closureCoverage: includeClosures ? 'CAPTURED_AS_OF_BACKUP' : 'NOT_CAPTURED',
+    ...(includeClosures ? { closureSchemaSha256: hash(fs.readFileSync(path.join(SOURCE, 'supabase/proposals/account-closure.sql'), 'utf8').replace(/\r\n/g, '\n')) } : {}),
     counts: { projects: db.projects.length, project_images: db.project_images.length, project_image_refs: db.project_image_refs.length, users: db.users.length, files: objects.length },
     migrations: fs.readdirSync(path.join(SOURCE, 'supabase/migrations')).sort().map(name => ({ name, sha256: hash(fs.readFileSync(path.join(SOURCE, 'supabase/migrations', name), 'utf8').replace(/\r\n/g, '\n')) })),
     files, warnings,
     notIncluded: ['Lösenord och sessioner för konton', 'Supabase-inställningar för Auth och Storage', 'Databasens schema (återskapas från migreringsfilerna ovan)'],
     sensitive: 'Innehåller kunders e-postadresser och projektinnehåll. Förvara krypterat och utanför Git.'
   };
+  if (includeClosures) manifest.counts.account_closures = db.account_closures.length;
   fs.writeFileSync(path.join(partial, 'manifest.json'), JSON.stringify(manifest, null, 2), { flag: 'wx' });
   fs.renameSync(partial, root);
   return manifest;
 }
 
 async function main(argv = process.argv.slice(2), env = process.env, createClient = () => require('@supabase/supabase-js').createClient) {
-  const [destination] = argv;
-  if (!destination || argv.length !== 1) throw new Error('Använd: npm run backup:create -- NY_BACKUPMAPP (utanför källkoden)');
+  const [destination, mode] = argv;
+  const includeClosures = mode === '--with-closures';
+  if (!destination || (argv.length !== 1 && !(argv.length === 2 && includeClosures))) throw new Error('Använd: npm run backup:create -- NY_BACKUPMAPP [--with-closures] (utanför källkoden)');
   const url = env.TEMPLATES_BACKUP_URL || '', key = env.TEMPLATES_BACKUP_SECRET_KEY || '';
   let host;
   try { const u = new URL(url); if (u.protocol !== 'https:' || u.username || u.password || u.pathname !== '/') throw 0; host = u.host; }
@@ -104,11 +120,12 @@ async function main(argv = process.argv.slice(2), env = process.env, createClien
   if (!key) throw new Error('Sätt TEMPLATES_BACKUP_SECRET_KEY i terminalen (hemlig nyckel; visas aldrig).');
   if (key.startsWith('sb_publishable_')) throw new Error('Den publika nyckeln räcker inte för backup. Använd den hemliga nyckeln och dela den aldrig.');
   const client = createClient()(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
-  const manifest = await createBackup({ client, destination, sourceHost: host, log: line => console.log(line) });
+  const manifest = await createBackup({ client, destination, sourceHost: host, includeClosures, log: line => console.log(line) });
   console.log('Backup klar: ' + manifest.counts.projects + ' projekt, ' + manifest.counts.files + ' bildfiler, ' + manifest.counts.users + ' konton.');
   if (manifest.warnings.length) console.log('Anmärkningar: ' + manifest.warnings.length + ' (se manifest.json).');
   console.log('Kontrollera den med: npm run backup:verify -- ' + destination);
   console.log('Innehåller kunddata och e-postadresser – förvara säkert.');
+  if (!includeClosures) console.log('V1: stängningsmarkeringar ingår inte. Återaktivering av konton är inte verifierad.');
   return manifest;
 }
 

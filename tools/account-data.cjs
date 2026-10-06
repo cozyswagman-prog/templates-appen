@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 const SOURCE = path.resolve(__dirname, '..');
+const { V1, V2, normalizeClosures } = require('./backup-closures.cjs');
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const IMAGE = /^[a-f0-9]{64}(?:-[a-f0-9]{32})?\.(png|jpeg|webp|gif)$/;
 const PREFIX = 'templates-image:v1:';
@@ -26,7 +27,8 @@ function readRegular(filename) {
   if (!stat.isFile() || stat.size > 128 * 1024 * 1024) fail('Ogiltig eller för stor backupfil.');
   return fs.readFileSync(filename);
 }
-function allowedFile(rel) {
+function allowedFile(rel, v2 = false) {
+  if (v2 && rel === 'db/account_closures.json') return true;
   if (TABLES.some(t => rel === 'db/' + t + '.json')) return true;
   const parts = typeof rel === 'string' ? rel.split('/') : [];
   return parts.length === 4 && parts[0] === 'storage' && parts[1] === 'project-images' && UUID.test(parts[2]) && IMAGE.test(parts[3]);
@@ -47,10 +49,11 @@ function loadBackup(directory) {
   const root = path.resolve(directory);
   const manifestBytes = readRegular(path.join(root, 'manifest.json'));
   const manifest = JSON.parse(manifestBytes);
-  if (manifest.format !== 'templates-backup-v1' || !Array.isArray(manifest.files) || !Number.isFinite(Date.parse(manifest.created))) fail('Okänt backupformat eller datum.');
+  if (![V1, V2].includes(manifest.format) || !Array.isArray(manifest.files) || !Number.isFinite(Date.parse(manifest.created))) fail('Okänt backupformat eller datum.');
+  const v2 = manifest.format === V2;
   const files = new Map();
   for (const f of manifest.files) {
-    if (!f || !allowedFile(f.path) || files.has(f.path)) fail('Otillåten eller dubbel filsökväg i manifestet.');
+    if (!f || !allowedFile(f.path, v2) || files.has(f.path)) fail('Otillåten eller dubbel filsökväg i manifestet.');
     const bytes = readRegular(path.join(root, ...f.path.split('/')));
     if (bytes.length !== f.bytes || sha(bytes) !== f.sha256) fail('Backupens kontrollsumma stämmer inte.');
     if (f.path.startsWith('storage/') && sha(bytes) !== path.basename(f.path).slice(0, 64)) fail('Bildens innehållsnyckel stämmer inte.');
@@ -58,6 +61,12 @@ function loadBackup(directory) {
   }
   if (walk(root).some(f => f !== 'manifest.json' && !files.has(f))) fail('Oväntad fil i backupen.');
   const db = {};
+  if (v2) {
+    const markers = files.get('db/account_closures.json');
+    if (!markers || manifest.closureCoverage !== 'CAPTURED_AS_OF_BACKUP' || !manifest.source) fail('V2 saknar verifierbart stängningsregister.');
+    db.account_closures = normalizeClosures(JSON.parse(markers));
+    if (manifest.counts?.account_closures !== db.account_closures.length) fail('Antalet stängningsmarkeringar stämmer inte.');
+  }
   for (const table of TABLES) {
     if (!files.has('db/' + table + '.json')) fail('Backupen saknar en obligatorisk tabell.');
     db[table] = JSON.parse(files.get('db/' + table + '.json'));
@@ -65,7 +74,7 @@ function loadBackup(directory) {
   }
   unique(db.users, r => r.id);
   if (db.users.some(r => !UUID.test(r.id))) fail('Ogiltigt konto-id.');
-  const owners = new Set(db.users.map(r => r.id));
+  const owners = new Set([...db.users.map(r => r.id), ...(db.account_closures || []).map(r => r.owner_id)]);
   for (const table of TABLES.slice(1)) if (db[table].some(r => !owners.has(r.owner_id))) fail('Data saknar identifierad kontoägare.');
   unique(db.projects, r => JSON.stringify([r.owner_id, r.id]));
   unique(db.project_images, r => JSON.stringify([r.owner_id, r.name]));
@@ -84,6 +93,7 @@ function loadBackup(directory) {
 
 function selectAccount(backup, ownerId) {
   if (!UUID.test(ownerId)) fail('Ange ett exakt konto-id, inte e-post eller sökmönster.');
+  if (backup.db.account_closures?.some(r => r.owner_id === ownerId)) fail('Kontot är markerat för stängning. Automatisk portabel export stoppad; granska begäran separat.');
   const user = backup.db.users.find(u => u.id === ownerId);
   if (!user) fail('Kontot finns inte i backupen.');
   const pick = (row, fields) => Object.fromEntries(fields.map(k => [k, row[k] ?? null]));
@@ -145,6 +155,7 @@ function prepareAccountData({ backupDirectory, ownerId, destination }) {
   const manifest = {
     format: 'templates-account-data-v1', created: new Date().toISOString(), backupCreated: backup.manifest.created,
     backupManifestSha256: backup.fingerprint, ownerId,
+    closureProtection: backup.manifest.format === V2 ? 'OPEN_AS_OF_BACKUP_ONLY' : 'UNKNOWN_LEGACY_WITHOUT_CLOSURES',
     scope: 'OFFLINE_SUPABASE_BACKUP_SUBSET_NOT_FULL_ACCOUNT_EXPORT',
     counts: { accounts: 1, projects: selected.data.projects.length, images: selected.objects.length },
     files: [...output].map(([name, bytes]) => ({ path: name, bytes: bytes.length, sha256: sha(bytes) })),
