@@ -51,6 +51,36 @@ test('Conflict errors preserve the draft and direct users to save a file', async
   store.setUser({ id: 'A' }); const p = project(), before = JSON.stringify(p);
   await assert.rejects(store.save(p), /projektfil/); assert.equal(JSON.stringify(p), before);
 });
+test('A lost response is confirmed as saved only when the account holds exactly this content', async () => {
+  const serverRow = content => ({ id: 'p-one', revision: 5, updated_at: '2026-10-06T12:00:00Z', content });
+  const client = server => ({
+    rpc: async () => ({ error: { code: 'PT409' } }),
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: server }) }) }) })
+  });
+  const p = { ...project(), cloudRevision: 4 }, before = JSON.stringify(p);
+  // Same content with keys in another order (jsonb reorders keys): the earlier save went through.
+  const same = createProjectStore(local(), client(serverRow({ values: { 'index.html': { 1: 'Hej' } }, templateId: 'cafe', name: 'Min sida' })));
+  same.setUser({ id: 'A' });
+  const saved = await same.save(p);
+  assert.equal(saved.cloudRevision, 5); assert.equal(saved.name, 'Min sida'); assert.equal(JSON.stringify(p), before);
+  // Different content on the account: still a conflict, nothing overwritten, draft intact.
+  const other = createProjectStore(local(), client(serverRow({ name: 'Min sida', templateId: 'cafe', values: { 'index.html': { 1: 'Annan flik' } } })));
+  other.setUser({ id: 'A' });
+  await assert.rejects(other.save(p), error => error.code === 'conflict' && /ändrats i en annan flik/.test(error.message));
+  assert.equal(JSON.stringify(p), before);
+  // The confirmation read itself fails: keep the conflict.
+  const failing = createProjectStore(local(), { rpc: async () => ({ error: { code: 'PT409' } }), from: () => { throw new TypeError('Failed to fetch'); } });
+  failing.setUser({ id: 'A' });
+  await assert.rejects(failing.save(p), { code: 'conflict' });
+  const missing = createProjectStore(local(), client(null));
+  missing.setUser({ id: 'A' });
+  await assert.rejects(missing.save(p), { code: 'conflict' });
+});
+test('Network errors are not marked as conflicts', async () => {
+  const store = createProjectStore(local(), { rpc: async () => ({ error: { message: 'Failed to fetch' } }) });
+  store.setUser({ id: 'A' });
+  await assert.rejects(store.save(project()), error => error.code !== 'conflict' && /Kunde inte nå ditt konto/.test(error.message));
+});
 test('Copy to account retains local original and always creates, never overwrites', async () => {
   const storage = local(), p = project(); storage.save(p);
   let args;

@@ -193,7 +193,7 @@
     document.getElementById('btn-version').hidden = !localVersions || store().mode !== 'local';
   }
   const recovery = window.createDraftRecovery(() => window.sessionStorage);
-  let recoveryReady = false, draftScope = null, recoveryOK = false;
+  let recoveryReady = false, draftScope = null, recoveryOK = false, saveConflict = false;
   const storageScope = () => store().mode === 'cloud' ? 'cloud:' + store().user.id : 'local';
   const auto = window.createAutosave({
     canSave: () => !!currentProject && dirty && !imageBusy && !saving && !viewEditor.hidden
@@ -203,7 +203,9 @@
   });
   function recoveryNote() {
     const note = document.getElementById('autosave-note');
-    const savingHelp = auto.paused ? 'Autosparandet är pausat. Tryck Spara för att försöka igen.'
+    // After a conflict, Spara only conflicts again: point to the file and the latest version instead.
+    const savingHelp = auto.paused && saveConflict ? 'Autosparandet är pausat eftersom projektet har ändrats någon annanstans. Välj Mer → Spara som projektfil och öppna sedan projektet på nytt under Mina projekt.'
+      : auto.paused ? 'Autosparandet är pausat. Tryck Spara för att försöka igen.'
       : store().mode === 'local' && !navigator.locks ? 'Tryck Spara. Automatisk sparning kräver en nyare webbläsare på en säker adress.'
         : 'Ändringar sparas automatiskt efter en kort paus.';
     note.textContent = savingHelp + (dirty
@@ -254,6 +256,7 @@
       project.localRevision = result.localRevision;
       project.updatedAt = result.updatedAt;
       saved = true;
+      saveConflict = false;
       dirty = changes !== version;
       succeeded = true;
       if (dirty) checkpoint();
@@ -265,6 +268,7 @@
     } catch (error) {
       if (currentProject === project) {
         auto.pause();
+        saveConflict = error.code === 'conflict';
         dirty = true;
         checkpoint();
         saveStatus.textContent = error.message;
@@ -525,6 +529,7 @@
     resetDelete();
     resetVersion();
     auto.stop(); auto.resume();
+    saveConflict = false;
     browsingTemplate = false;
     window.Storage.migrate(project);
     currentProject = project;

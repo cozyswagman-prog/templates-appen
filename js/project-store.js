@@ -5,7 +5,10 @@
     const images = (root.ImageAssets || (typeof require === 'function' ? require('./image-assets.js') : null)).create(client);
     const listeners = new Set();
     const localLock = fn => root.document && root.navigator?.locks ? root.navigator.locks.request('templates.projects.v1', fn) : Promise.resolve().then(fn);
-    const conflict = () => new Error('Projektet har ändrats i en annan flik eller tagits bort. Spara dina ändringar som projektfil eller återställ som ett nytt projekt.');
+    const conflict = () => Object.assign(new Error('Projektet har ändrats i en annan flik eller tagits bort. Spara dina ändringar som projektfil eller återställ som ett nytt projekt.'), { code: 'conflict' });
+    // Key-order independent comparison (jsonb reorders object keys).
+    const canonical = v => Array.isArray(v) ? '[' + v.map(canonical).join(',') + ']'
+      : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}' : JSON.stringify(v);
     const context = () => epoch + ':' + mode + ':' + (user ? user.id : '');
     const message = error => {
       if (error && error.code === 'PT409') return 'Projektet har ändrats i en annan flik eller är inte längre tillgängligt. Spara dina ändringar som projektfil och öppna den senaste versionen.';
@@ -19,7 +22,7 @@
     async function request(query, expected) {
       const result = await query;
       assertContext(expected);
-      if (result.error) throw new Error(message(result.error));
+      if (result.error) throw Object.assign(new Error(message(result.error)), result.error.code === 'PT409' ? { code: 'conflict' } : {});
       return result.data;
     }
     const fromRow = row => row && ({ ...row.content, id: row.id, updatedAt: Date.parse(row.updated_at), cloudRevision: row.revision });
@@ -76,7 +79,19 @@
         const owner = user.id, portable = contentOf(copy);
         const content = await images.pack(portable, owner, () => assertContext(expected));
         assertContext(expected);
-        const row = (await request(client.rpc('save_project', { p_id: copy.id, p_content: content, p_revision: copy.cloudRevision || 0, p_owner: owner }), expected))[0];
+        let row;
+        try { row = (await request(client.rpc('save_project', { p_id: copy.id, p_content: content, p_revision: copy.cloudRevision || 0, p_owner: owner }), expected))[0]; }
+        catch (error) {
+          if (error.code !== 'conflict') throw error;
+          // A previous attempt may have been saved although its response was lost. If the
+          // account already holds exactly this content, that save succeeded; anything else
+          // remains a conflict and nothing is overwritten.
+          let current = null;
+          try { current = (await client.from('projects').select('id,content,revision,updated_at').eq('id', copy.id).maybeSingle()).data; } catch { /* keep the conflict */ }
+          assertContext(expected);
+          if (!current || canonical(current.content) !== canonical(content)) throw error;
+          return fromRow({ ...current, content: portable });
+        }
         if (!row || row.id !== copy.id || row.revision !== (copy.cloudRevision || 0) + 1) throw new Error('Kontot bekräftade inte sparningen. Behåll en projektfil och öppna den sparade versionen innan du försöker igen.');
         // No download after committing: a later network failure must not hide the new revision.
         return fromRow({ ...row, content: portable });

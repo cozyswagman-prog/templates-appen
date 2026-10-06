@@ -43,6 +43,17 @@ Remove-Item Env:TEMPLATES_BACKUP_SECRET_KEY
 - Nyckeln visas aldrig och sparas aldrig i backupen. Den publika nyckeln (`sb_publishable_`)
   avvisas.
 
+## Rutin (gäller tills annat beslutas)
+
+- **När:** en gång i veckan, och dessutom före varje migrering, större kodändring
+  eller publicering.
+- **Varje gång:** skapa en ny backup och kör `backup:verify` direkt efteråt. En backup
+  som inte är kontrollerad räknas inte.
+- **Förvaring:** en krypterad extern disk (till exempel BitLocker To Go). Behåll de
+  fyra senaste veckorna. Lägg aldrig backupen i Git eller i en delad molnmapp.
+- **Före betald pilot:** återställ en gång i ett separat Supabase-projekt och
+  dokumentera resultatet.
+
 ## Kontrollera en backup
 
 ```powershell

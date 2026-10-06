@@ -54,6 +54,8 @@ async function open(page, name) {
     await second.locator('#save-status').filter({ hasText: 'annan flik' }).waitFor();
     check('Two local tabs cannot silently overwrite each other', await second.evaluate(id => window.Storage.get(id).name, original) === 'Nyare från första fliken');
     check('Conflict pauses autosave and retains recovery', (await second.locator('#autosave-note').innerText()).includes('pausat') && await second.evaluate(() => window.createDraftRecovery(() => sessionStorage).read('local').project.name === 'Äldre flik med nya ord'));
+    const conflictNote = await second.locator('#autosave-note').innerText();
+    check('Conflict points to the project file and the latest version instead of Spara', conflictNote.includes('Spara som projektfil') && conflictNote.includes('öppna sedan projektet på nytt') && !conflictNote.includes('Tryck Spara'));
     await second.locator('#btn-back').click(); await second.locator('#leave-discard').click();
     check('Explicit discard removes pending recovery and stops saving', await second.evaluate(() => sessionStorage.getItem('templates.recovery.v1:local') === null));
     // Two independent projects also share the same localStorage array, so lock globally.
