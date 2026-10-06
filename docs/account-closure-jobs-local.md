@@ -46,6 +46,9 @@ abonnemangs- och faktureringsrader byte för byte.
   Tre försök per steg är standard; därefter krävs uttrycklig lokal granskning
   och `resume(id, expectedFence)`. Ändrade förutsättningar stoppar direkt.
 - `runNext` kör ett steg. Ingen bakgrundskörning startas automatiskt.
+- Återlästa kontrollpaket har `RESTORE_REVIEW_REQUIRED`. Vanlig `resume`
+  får inte öppna dessa jobb; samordnad återstartsgranskning återstår. Se
+  `closure-control-backup-local.md` för lokal backup av jobb och alla register.
 - Bara fasta felkoder lagras. Råa tjänstefel, sessionsdata och nycklar ska inte
   hamna i databas eller logg. Omfattningen innehåller dock interna identifierare;
   framtida verkliga jobb kräver skyddad lagring och livscykelbeslut.

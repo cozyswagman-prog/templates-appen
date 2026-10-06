@@ -120,6 +120,8 @@ class ClosureJobStore {
   resume(id, expectedFence) {
     return this.transaction(() => {
       const job = this.read(id);
+      // Restored snapshots require reconciliation of all services, not ordinary retry approval.
+      if (job.errorCode === 'RESTORE_REVIEW_REQUIRED') throw fault('RESTORE_REVIEW_REQUIRED');
       if (job.status !== 'blocked' || job.fence !== expectedFence) throw fault('REVIEW_STATE_CHANGED');
       this.db.prepare("update closure_jobs_v1 set status='pending',attempts=0,retry_at=0,error_code=null,updated_at=? where id=?").run(this.now(),id);
       this.event(job,'reviewed_resume'); return this.read(id);

@@ -87,9 +87,11 @@ Kvar före aktivering:
 
 1. Beständig och verifierbar orkestrering av båda tjänsterna, fakturering,
    inflight-anrop, schema- och versionskontroll, schemaläggning och övervakning.
-2. Skyddad backup/återställning av jobbdatabas, båda D1-spärrregistren och nya
-   `account_closure_execution`. Supabase-backup v2 fångar fortfarande bara
-   stängningsmarkeringarna från det tidigare förslaget, inte dessa jobbdata.
+2. Molnfångst och samordning av backup med kunddata. Gemensamt kontrollpaket
+   för jobb, båda D1-spärrregistren och `account_closure_execution` kan nu
+   fångas/återläsas lokalt; se `closure-control-backup-local.md`. Alla återlästa
+   jobb stannar för granskning. Supabase-backup v2 är oförändrad och fångar
+   fortfarande bara de tidigare privata stängningsmarkeringarna.
 3. Verkligt prov i separat godkänd Supabase/Cloudflare-miljö, inklusive
    Storage-fel, Auth-fel, parallella anslutningar och återstart av körprocesser.
 4. Hantering av andra Storage-buckets och data utanför Templates-omfattningen,
