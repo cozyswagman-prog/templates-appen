@@ -148,11 +148,11 @@ ${window.fontCss('lora', 'inter')}
     <h1 class="section-title" data-slot="text" data-label="Rubrik för menysidan">Vår meny</h1>
     <p class="section-sub" data-slot="text" data-label="Undertext för menysidan">Allt bakas och bryggs här i huset</p>
     <div class="menylista">
-      <h3 data-slot="text" data-label="Kategori 1 – rubrik">Kaffe &amp; dryck</h3>
+      <h3 aria-level="2" data-slot="text" data-label="Kategori 1 – rubrik">Kaffe &amp; dryck</h3>
       <div class="rad"><span data-slot="text" data-label="Dryck 1">Bryggkaffe (påtår ingår)</span><span class="dots"></span><span class="pris" data-slot="text" data-label="Dryck 1 – pris">38 kr</span></div>
       <div class="rad"><span data-slot="text" data-label="Dryck 2">Cappuccino</span><span class="dots"></span><span class="pris" data-slot="text" data-label="Dryck 2 – pris">49 kr</span></div>
       <div class="rad"><span data-slot="text" data-label="Dryck 3">Te från Göteborgs Tehus</span><span class="dots"></span><span class="pris" data-slot="text" data-label="Dryck 3 – pris">42 kr</span></div>
-      <h3 data-slot="text" data-label="Kategori 2 – rubrik">Fika</h3>
+      <h3 aria-level="2" data-slot="text" data-label="Kategori 2 – rubrik">Fika</h3>
       <div class="rad"><span data-slot="text" data-label="Fika 1">Kanelbulle</span><span class="dots"></span><span class="pris" data-slot="text" data-label="Fika 1 – pris">42 kr</span></div>
       <div class="rad"><span data-slot="text" data-label="Fika 2">Morotskaka med citronfrosting</span><span class="dots"></span><span class="pris" data-slot="text" data-label="Fika 2 – pris">52 kr</span></div>
       <div class="rad"><span data-slot="text" data-label="Fika 3">Dagens surdegsmacka</span><span class="dots"></span><span class="pris" data-slot="text" data-label="Fika 3 – pris">79 kr</span></div>
@@ -180,10 +180,10 @@ ${window.fontCss('lora', 'inter')}
     <div class="kgrid">
       <img data-slot="image" data-label="Bild på kontaktsidan" src="${window.ex('cafe-kontakt', 800, 640, '#e3dccd', '#2f4a3a', 'Bild · t.ex. entrén eller lokalen')}" alt="">
       <div>
-        <h3>Öppettider</h3>
+        <h3 aria-level="2">Öppettider</h3>
         <p data-slot="text" data-multiline data-label="Öppettider">Mån–Fre: 07.30–17.00
 Lör–Sön: 09.00–16.00</p>
-        <h3>Adress &amp; kontakt</h3>
+        <h3 aria-level="2">Adress &amp; kontakt</h3>
         <p data-slot="text" data-multiline data-label="Adress och kontakt">Linnégatan 23, 413 04 Göteborg
 031-12 34 56
 hej@cafelinnea.se</p>

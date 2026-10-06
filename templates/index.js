@@ -91,7 +91,7 @@ window.SiteKit = (function () {
     .kit-salong .price-row{flex-wrap:wrap}.kit-salong .price-row>small{font:14px/1.5 system-ui;flex-basis:100%}.kit-inline{padding:0 18px 18px}.kit-inline h3{font-size:20px}
     .hero-inner .kit-link-note{color:inherit;flex-basis:100%;margin:0}.kit-gym .pass>.kit-button{margin:0 20px 20px}.kit-gym .pass>.kit-link-note{margin:0 20px 20px}
     .kit-form a,.kit-section a:not(.kit-button){color:inherit;text-decoration:underline;text-underline-offset:3px}
-    .kit-button.kit-secondary{background:transparent;color:var(--kit-accent)}.kit-hero-actions{margin:28px 0 0}.kit-tel{color:inherit;text-decoration:none}.kit-tel[href]:hover{text-decoration:underline;text-underline-offset:3px}
+    .kit-button.kit-secondary{background:transparent;color:var(--kit-accent)}.kit-hero-actions{margin:28px 0 0}.kit-tel{color:inherit;text-decoration:none}.kit-skip{position:absolute;left:-10000px;top:8px;z-index:1000;padding:10px 16px;border-radius:4px;background:var(--kit-accent);color:var(--kit-on);font:700 15px/1.4 system-ui;text-decoration:none}.kit-skip:focus{left:8px}main{display:block}.kit-tel[href]:hover{text-decoration:underline;text-underline-offset:3px}
     :where(a,button,input,select,textarea,summary):focus-visible{outline:3px solid var(--kit-accent);outline-offset:4px}
     nav a{display:inline-flex;align-items:center;min-height:44px}.kit-choice{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.kit-choice a{white-space:normal}
     @media(max-width:720px){.kit-section{padding:44px 0}.kit-grid,.kit-choice{grid-template-columns:1fr;gap:24px}.kit-wrap{padding:0 22px}.kit-actions>.kit-button{flex:1 1 130px}.kit-filter{gap:8px}.kit-filter button{flex:1 1 auto}.kit-section h3{font-size:23px}}
@@ -219,6 +219,16 @@ window.SiteKit = (function () {
     const examples={cafe:{'weekly.photo':'cafe-weekly','visit.photo':'cafe-visit'},restaurang:{'lunch.photo':'rest-lunch','signature.photo':'rest-kitchen'},butik:{'collection.photo':'butik-table'},hemservice:{'estimate.photo':'hem-supplies'}}[id]||{};
     doc.querySelectorAll('img[data-image-key]').forEach(img=>{const key=examples[img.dataset.imageKey];const src=key&&window.EXEMPEL&&window.EXEMPEL[key];if(typeof src==='string'){img.setAttribute('src',src);img.removeAttribute('data-ph-palette');}});
     doc.querySelectorAll('img[data-ph-palette]').forEach(img=>{img.setAttribute('src',window.ph(1000,750,colors[3],colors[2],img.dataset.caption));img.removeAttribute('data-ph-palette');});
+    // Landmärken för skärmläsare: toppremsan blir sidhuvud (banner) och allt mellan toppen och sidfoten
+    // hamnar i ett <main>. Ordningen på element och numrerade fält ändras inte.
+    if(!doc.querySelector('main')){
+      const kids=[...doc.body.children].filter(el=>!['SCRIPT','STYLE','TEMPLATE'].includes(el.tagName));
+      let start=0;if(kids[0]&&(kids[0].tagName==='NAV'||kids[0].classList.contains('topbar'))){if(kids[0].tagName!=='NAV')kids[0].setAttribute('role','banner');start=1;}
+      const end=kids.findIndex(el=>el.tagName==='FOOTER');const content=kids.slice(start,end<0?kids.length:end);
+      if(content.length){const main=doc.createElement('main');main.id='innehall';content[0].before(main);content.forEach(el=>main.append(el));
+        // Länk förbi menyn för tangentbord och skärmläsare; syns bara vid fokus. Ingen redigerbar länk.
+        doc.body.insertAdjacentHTML('afterbegin','<a class="kit-skip" href="#innehall">Hoppa till innehållet</a>');}
+    }
     return {...page,html:'<!DOCTYPE html>\n'+doc.documentElement.outerHTML};
   }
 
@@ -249,7 +259,10 @@ window.SiteKit = (function () {
     doc.querySelectorAll('[data-section]').forEach(el=>{const key=el.dataset.section;el.hidden=typeof p.hidden[key]==='boolean'?p.hidden[key]:key==='reviews';});
     doc.querySelectorAll('[data-filter-item]').forEach((el,i)=>{const key=el.dataset.filterItem+'-'+i;if(typeof p.categories[key]==='string')el.dataset.categories=p.categories[key];});
     const automatic={phone:safeLink(b.phone?'tel:'+b.phone:''),email:safeLink(b.email?'mailto:'+b.email:''),booking:safeLink(b.booking),contact:safeLink(b.email?'mailto:'+b.email:''),directions:typeof b.address==='string'&&b.address.trim()?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(b.address):''};
-    doc.querySelectorAll('[data-business]').forEach(el=>{const k=el.dataset.business;el.textContent=typeof b[k]==='string'?b[k]:'';if(automatic[k])el.setAttribute('href',automatic[k]);else el.removeAttribute('href');});
+    doc.querySelectorAll('[data-business]').forEach(el=>{const k=el.dataset.business;el.textContent=typeof b[k]==='string'?b[k]:'';if(automatic[k])el.setAttribute('href',automatic[k]);else el.removeAttribute('href');if(k==='name'||k==='address')el.hidden=!el.textContent.trim();});
+    // Flerradiga listfält (t.ex. gymmets medlemskap) blir riktiga listpunkter i den färdiga sajten. Editorns
+    // förhandsvisning behåller fältet orört (data-slot finns kvar där), så redigeringen fungerar som förut.
+    doc.querySelectorAll('ul:not([data-slot]),ol:not([data-slot])').forEach(list=>{if(list.children.length||!list.textContent.trim())return;const rows=list.textContent.split('\n').map(s=>s.trim()).filter(Boolean);list.textContent='';rows.forEach(row=>{const li=doc.createElement('li');li.textContent=row;list.append(li);});});
     const note=doc.querySelector('[data-contact-note]');if(note)note.hidden=!!(automatic.phone||automatic.email||automatic.booking||automatic.directions);
     doc.querySelectorAll('[data-action],[data-link-key]').forEach(el=>{
       const actionKey=el.dataset.action,key=actionKey||file+':'+el.dataset.linkKey;
