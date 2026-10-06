@@ -1,7 +1,15 @@
 # Abonnemang (T07) – lokal prototyp med Stripe
 
 Förberett 2026-10-06. Ingen Stripe-tjänst är ansluten, inga produkter eller priser är skapade och ingen
-betalning har gjorts. Pris och leverantörsval är inte beslutade. 499 kr/mån exkl. moms är en prishypotes.
+betalning har gjorts.
+
+## Beslut (ägaren, 2026-10-06)
+
+- **Pris:** 499 kr i månaden exklusive moms. Med 25 % moms blir det 623,75 kr.
+- **Adress utan abonnemang:** det går att reservera en adress utan abonnemang, men publicering kräver abonnemang.
+- **Efter avslutat abonnemang:** den publicerade sajten ligger kvar, men nya publiceringar spärras.
+- **Moms:** en manuell skattesats används, eftersom den är gratis. Stripe Tax kostar per transaktion och används
+  inte.
 
 ## Princip: betalning bekräftas bara av servern
 
@@ -45,10 +53,40 @@ Kunden ── "Publicera" ──▶ /api/publish ── kräver aktivt abonneman
 | `STRIPE_PRICE_ID` | `price_…` för abonnemanget |
 | `STRIPE_PRODUCT_ID` | valfri, `prod_…` |
 | `STRIPE_PORTAL_CONFIGURATION` | valfri, `bpc_…`. Annars gäller portalens standardinställning i Stripe. |
+| `STRIPE_TAX_RATE_ID` | `txr_…`, skattesatsen 25 % moms, exklusive |
+| `PLAN_PRICE_SEK` | `499`, priset exklusive moms som appen visar. Måste stämma med Stripe-priset. |
 | `REQUIRE_PLAN` | `1` = publicering kräver aktivt abonnemang |
 
 Hemligheterna läggs som Worker-hemligheter och aldrig i Git, i appen eller i chatten. Stripe-händelser
 att skicka: `checkout.session.completed` och `customer.subscription.created`, `.updated` och `.deleted`.
+
+## Betalsidan
+
+Checkout öppnas med:
+- svenska,
+- obligatorisk faktureringsadress,
+- fält för momsregistreringsnummer,
+- skattesatsen på abonnemanget, så att varje faktura får 25 % moms.
+
+En återkommande kund får namn och adress uppdaterade från betalsidan. Appen visar priset ur `PLAN_PRICE_SEK`.
+
+## Uppsättning i Stripes testläge (görs en gång, kostar inget)
+
+Kräver ett Stripe-konto i **testläge** eller en sandlåda. Ingenting görs i livemode före lansering.
+
+1. **Produkt:** "Templates – hemsida". Id:t blir `STRIPE_PRODUCT_ID`.
+2. **Pris:** 49 900 öre (499 kr) i SEK, återkommande varje månad, `tax_behavior=exclusive`. Id:t blir
+   `STRIPE_PRICE_ID`.
+3. **Skattesats:** "Moms", 25 %, exklusive, land SE. Id:t blir `STRIPE_TAX_RATE_ID`.
+4. **Kundportal:**
+   - tillåt uppsägning vid periodens slut, kortbyte och kvitton,
+   - ange villkors- och integritetslänkar,
+   - spara standardinställningen.
+5. **Webhook:** för ett lokalt prov används Stripe CLI, `stripe listen --forward-to 127.0.0.1:8792/api/stripe/webhook`.
+   Den ger en `whsec_` som läggs som hemlighet. Händelser: `checkout.session.completed` och
+   `customer.subscription.*`.
+6. **Nyckel:** en begränsad nyckel (`rk_test_`) med skrivrätt till Checkout Sessions och Customer portal, och
+   läsrätt till resten. Den läggs som hemlighet av ägaren och aldrig i chatten.
 
 ## Kundportalen
 
@@ -69,8 +107,6 @@ går att öppna.
 
 ## Inte gjort – kräver beslut eller konto
 
-- Pris, moms, kvitton och fakturauppgifter samt avtal och villkor.
-- Stripe-konto, produkt, pris och webhook-endpoint i testläge. Det skapar ägaren.
+- Kundvillkor, integritetspolicy och vilka uppgifter kvittot ska ha. Det ingår i T11.
+- Stripe-konto i testläge: kopplingen i den här miljön når i dag bara ett konto i livemode, så uppsättningen ovan är inte gjord.
 - Portalens inställningar i Stripe, till exempel om uppsägning ska gälla direkt eller vid periodens slut. Återbetalningar och tvister hanteras manuellt i Stripe.
-- Vad som händer med en publicerad sajt när abonnemanget upphör. I dag spärras bara nya publiceringar, och sajten ligger kvar.
-- Om adressen ska få reserveras utan abonnemang. I dag går det.

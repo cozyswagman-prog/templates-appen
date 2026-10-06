@@ -2,7 +2,8 @@
 //   Bindningar: SITES (R2-bucket), DB (D1, schema i server/schema.sql),
 //   PUBLISH_HOST + APP_ORIGIN + SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY för det inloggade API:t,
 //   abonnemang: STRIPE_WEBHOOK_SECRET (whsec_, hemlighet), STRIPE_SECRET_KEY (hemlighet), STRIPE_PRICE_ID,
-//   STRIPE_PRODUCT_ID (valfri), STRIPE_PORTAL_CONFIGURATION (valfri, bpc_), REQUIRE_PLAN='1' för att kräva
+//   STRIPE_PRODUCT_ID (valfri), STRIPE_PORTAL_CONFIGURATION (valfri, bpc_), STRIPE_TAX_RATE_ID (txr_, moms),
+//   PLAN_PRICE_SEK (pris exkl. moms som visas i appen, ska motsvara Stripe-priset), REQUIRE_PLAN='1' för att kräva
 //   aktivt abonnemang vid publicering,
 //   CONTROL_HOST + CONTROL_TOKEN (hemlighet) för provets styrgränssnitt, ALLOW_FAULTS='1' endast lokalt.
 // Besökare: GET/HEAD på kundens värdnamn -> aktiv version. Kunder publicerar via PUBLISH_HOST/api/publish
@@ -81,7 +82,7 @@ export default {
     if (env.PUBLISH_HOST && host === env.PUBLISH_HOST) {
       const source = createAccountSource({ url: env.SUPABASE_URL, publishableKey: env.SUPABASE_PUBLISHABLE_KEY });
       const billing = env.STRIPE_WEBHOOK_SECRET ? createBilling({ store: d1Billing(env.DB), productId: env.STRIPE_PRODUCT_ID || null }) : null;
-      const checkout = env.STRIPE_SECRET_KEY ? createStripeCheckout({ secretKey: env.STRIPE_SECRET_KEY, priceId: env.STRIPE_PRICE_ID, appOrigin: env.APP_ORIGIN }) : null;
+      const checkout = env.STRIPE_SECRET_KEY ? createStripeCheckout({ secretKey: env.STRIPE_SECRET_KEY, priceId: env.STRIPE_PRICE_ID, appOrigin: env.APP_ORIGIN, taxRateId: env.STRIPE_TAX_RATE_ID || null }) : null;
       const portal = env.STRIPE_SECRET_KEY ? createStripePortal({ secretKey: env.STRIPE_SECRET_KEY, appOrigin: env.APP_ORIGIN, configurationId: env.STRIPE_PORTAL_CONFIGURATION || null }) : null;
       return handlePublishRequest(request, { env, sites, source, billing, checkout, portal, publisher: createPublisher({ bucket, sites, render: renderSite }) });
     }

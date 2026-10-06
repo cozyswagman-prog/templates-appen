@@ -43,7 +43,7 @@ export async function handlePublishRequest(request, { env, sites, publisher, sou
     if (!user) return json(401, { error: 'Logga in igen för att publicera.', code: 'auth' });
     // Stripes kund-id stannar på servern; webbläsaren får bara veta om det finns något att hantera.
     const planOf = async () => { if (!billing) return null; const p = await billing.plan(user.id); return { active: p.active, status: p.status, cancelAtPeriodEnd: !!p.cancelAtPeriodEnd, currentPeriodEnd: p.currentPeriodEnd ?? null, manageable: !!(portal && p.customerId) }; };
-    if (route === 'list') return json(200, { sites: (await sites.listByOwner(user.id)).map(s => view(s)), domain: env.SITES_DOMAIN || null, planRequired: env.REQUIRE_PLAN === '1', plan: await planOf() });
+    if (route === 'list') return json(200, { sites: (await sites.listByOwner(user.id)).map(s => view(s)), domain: env.SITES_DOMAIN || null, planRequired: env.REQUIRE_PLAN === '1', plan: await planOf(), price: /^[1-9]\d{0,5}$/.test(env.PLAN_PRICE_SEK || '') ? { sek: Number(env.PLAN_PRICE_SEK), vat: 'exclusive' } : null });
     if (route === 'checkout') {
       if (!billing || !checkout) return json(503, { error: 'Abonnemang är inte konfigurerat.', code: 'config' });
       const p = await billing.plan(user.id);

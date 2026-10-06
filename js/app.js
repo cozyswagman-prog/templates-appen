@@ -230,13 +230,13 @@
     publishMessage('Hämtar din hemsidas adress…');
     publishDialog.showModal();
     try {
-      const { site, domain, planRequired, plan } = await publishClient.status();
+      const { site, domain, planRequired, plan, price } = await publishClient.status();
       if (request !== publishRequest) return;
       publishSite = site;
       showPlan(plan);
       if (planRequired && !plan?.active) {
         confirm.hidden = true; publishEl('publish-subscribe').hidden = false;
-        publishMessage('Publicering ingår i abonnemanget. Betalningen görs på Stripes säkra sida, och du kan publicera så snart den är bekräftad.');
+        publishMessage('Publicering ingår i abonnemanget' + (price?.sek ? ', som kostar ' + price.sek.toLocaleString('sv-SE') + ' kr i månaden exkl. moms' : '') + '. Betalningen görs på Stripes säkra sida, och du kan publicera så snart den är bekräftad. Du kan säga upp när du vill.');
         return;
       }
       if (site) publishMessage(site.active ? 'Din hemsida finns på ' + site.url + ' – den nya versionen ersätter den när allt är klart.' : 'Din adress är ' + site.url + '. Inget är publicerat ännu.');

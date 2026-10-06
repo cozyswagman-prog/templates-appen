@@ -35,9 +35,9 @@ test('Address suggestion from the project name', () => {
   assert.ok(suggestSlug('x'.repeat(80)).length <= 40);
 });
 test('Subscription: status tells when a plan is required, checkout only returns a Stripe address', async () => {
-  const ok = client(async (url, init) => url.endsWith('/api/sites') ? Response.json({ sites: [], domain: 'sites.test', planRequired: true, plan: { active: false, status: null } })
+  const ok = client(async (url, init) => url.endsWith('/api/sites') ? Response.json({ sites: [], domain: 'sites.test', planRequired: true, plan: { active: false, status: null }, price: { sek: 499, vat: 'exclusive' } })
     : Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_test_1' }));
-  const s = await ok.c.status(); assert.equal(s.planRequired, true); assert.equal(s.plan.active, false);
+  const s = await ok.c.status(); assert.equal(s.planRequired, true); assert.equal(s.plan.active, false); assert.equal(s.price.sek, 499);
   assert.equal(await ok.c.checkout(), 'https://checkout.stripe.com/c/pay/cs_test_1');
   assert.equal(ok.calls[1].init.method, 'POST'); assert.ok(ok.calls[1].url.endsWith('/api/billing/checkout'));
   await assert.rejects(client(async () => Response.json({ url: 'https://evil.example/pay' })).c.checkout(), { code: 'checkout' });

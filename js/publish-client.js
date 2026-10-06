@@ -27,7 +27,7 @@
       configured: !!base,
       async status() {
         const data = await call('GET', '/api/sites');
-        return { site: (data.sites || [])[0] || null, domain: data.domain || '', planRequired: !!data.planRequired, plan: data.plan || null };
+        return { site: (data.sites || [])[0] || null, domain: data.domain || '', planRequired: !!data.planRequired, plan: data.plan || null, price: data.price || null };
       },
       // Adress till Stripes betalsida. Rätten att publicera ges först när Stripe bekräftat betalningen.
       async checkout() {

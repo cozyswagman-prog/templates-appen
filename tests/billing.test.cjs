@@ -98,8 +98,8 @@ function api({ requirePlan = true, checkoutFetch, portalFetch } = {}) {
   const store = memoryBillingStore(), billing = createBilling({ store });
   const source = { getUser: async t => t === 'token-a' ? { id: A, email: 'a@example.test' } : null,
     loadProject: async (t, owner, id) => owner === A && id === 'pa' ? { project: { name: 'Kafé A', templateId: 'cafe', values: { 'index.html': { 3: 'Kafé A' } } }, revision: 1 } : null };
-  const checkout = createStripeCheckout({ secretKey: 'sk_test_prov', priceId: 'price_1', appOrigin: 'https://app.test', fetch: checkoutFetch || (async () => Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_test_1' })) });
-  const env = { APP_ORIGIN: 'https://app.test', SITES_DOMAIN: 'sites.test', STRIPE_WEBHOOK_SECRET: SECRET, ...(requirePlan ? { REQUIRE_PLAN: '1' } : {}) };
+  const checkout = createStripeCheckout({ secretKey: 'sk_test_prov', priceId: 'price_1', appOrigin: 'https://app.test', taxRateId: 'txr_moms25', fetch: checkoutFetch || (async () => Response.json({ url: 'https://checkout.stripe.com/c/pay/cs_test_1' })) });
+  const env = { APP_ORIGIN: 'https://app.test', SITES_DOMAIN: 'sites.test', STRIPE_WEBHOOK_SECRET: SECRET, PLAN_PRICE_SEK: '499', ...(requirePlan ? { REQUIRE_PLAN: '1' } : {}) };
   const portal = createStripePortal({ secretKey: 'sk_test_prov', appOrigin: 'https://app.test', fetch: portalFetch || (async () => Response.json({ url: 'https://billing.stripe.com/p/session/test_1' })) });
   const deps = { env, sites, source, billing, checkout, portal, publisher: createPublisher({ bucket, sites, render: renderProject }) };
   const call = (method, path, body, headers = {}) => handlePublishRequest(new Request('https://publish.test' + path, { method, headers: { Origin: 'https://app.test', Authorization: 'Bearer token-a', 'Content-Type': 'application/json', ...headers }, ...(body != null ? { body: typeof body === 'string' ? body : JSON.stringify(body) } : {}) }), deps);
@@ -111,7 +111,7 @@ test('Publishing requires an active subscription set by a signed webhook, never 
   const w = api(), now = Math.floor(Date.now() / 1000);
   assert.equal((await w.call('POST', '/api/publish', { siteId: 'kafe-a', projectId: 'pa' })).status, 402);
   const status = await (await w.call('GET', '/api/sites')).json();
-  assert.equal(status.planRequired, true); assert.equal(status.plan.active, false); assert.equal(status.plan.customerId, undefined, 'no Stripe ids are sent to the browser');
+  assert.equal(status.planRequired, true); assert.equal(status.plan.active, false); assert.deepEqual(status.price, { sek: 499, vat: 'exclusive' }); assert.equal(status.plan.customerId, undefined, 'no Stripe ids are sent to the browser');
   assert.equal((await w.webhook(subEvent('customer.subscription.created', 'active', now), { bad: true })).status, 400, 'a forged event is refused');
   assert.equal((await w.call('POST', '/api/publish', { siteId: 'kafe-a', projectId: 'pa' })).status, 402);
   const ok = await w.webhook(subEvent('customer.subscription.created', 'active', now));
@@ -129,7 +129,8 @@ test('Checkout opens Stripe\'s page for the signed-in account with the configure
   const r = await w.call('POST', '/api/billing/checkout', {});
   assert.equal(r.status, 200); assert.equal((await r.json()).url, 'https://checkout.stripe.com/c/pay/cs_test_1');
   assert.equal(sent.url, 'https://api.stripe.com/v1/checkout/sessions'); assert.equal(sent.init.headers.Authorization, 'Bearer sk_test_prov');
-  for (const [k, v] of [['mode', 'subscription'], ['line_items[0][price]', 'price_1'], ['client_reference_id', A], ['subscription_data[metadata][user_id]', A], ['success_url', 'https://app.test/?betalning=klar'], ['cancel_url', 'https://app.test/?betalning=avbruten'], ['customer_email', 'a@example.test']])
+  for (const [k, v] of [['mode', 'subscription'], ['line_items[0][price]', 'price_1'], ['client_reference_id', A], ['subscription_data[metadata][user_id]', A], ['success_url', 'https://app.test/?betalning=klar'], ['cancel_url', 'https://app.test/?betalning=avbruten'], ['customer_email', 'a@example.test'],
+    ['subscription_data[default_tax_rates][0]', 'txr_moms25'], ['billing_address_collection', 'required'], ['tax_id_collection[enabled]', 'true']])
     assert.equal(sent.form.get(k), v, k);
   await w.webhook(subEvent('customer.subscription.created', 'active', Math.floor(Date.now() / 1000)));
   assert.equal((await w.call('POST', '/api/billing/checkout', {})).status, 409, 'no second subscription while one is active');
@@ -137,6 +138,7 @@ test('Checkout opens Stripe\'s page for the signed-in account with the configure
   assert.equal((await evil.call('POST', '/api/billing/checkout', {})).status, 502, 'only a Stripe checkout address is passed on');
   assert.equal((await api().call('POST', '/api/billing/checkout', {}, { Authorization: '' })).status, 401);
   await assert.rejects(createStripeCheckout({ secretKey: 'pk_test_x', priceId: 'price_1', appOrigin: 'https://app.test' })(A), { code: 'config' });
+  await assert.rejects(createStripeCheckout({ secretKey: 'sk_test_x', priceId: 'price_1', appOrigin: 'https://app.test', taxRateId: '25' })(A), { code: 'config' }, 'only a Stripe tax rate id is accepted');
 });
 
 test('Customer portal: only for an account with a Stripe customer; a returning customer reuses it at checkout', async () => {
@@ -157,6 +159,7 @@ test('Customer portal: only for an account with a Stripe customer; a returning c
   await w.webhook(subEvent('customer.subscription.deleted', 'canceled', now + 1));
   assert.equal((await w.call('POST', '/api/billing/checkout', {})).status, 200);
   assert.equal(checkoutSent.get('customer'), 'cus_1'); assert.equal(checkoutSent.get('customer_email'), null, 'a returning customer keeps cards and receipts together');
+  assert.equal(checkoutSent.get('customer_update[name]'), 'auto'); assert.equal(checkoutSent.get('customer_update[address]'), 'auto');
   assert.equal((await w.call('POST', '/api/billing/portal', {})).status, 200, 'receipts stay reachable after cancellation');
   const evil = api({ portalFetch: async () => Response.json({ url: 'https://evil.example/portal' }) });
   await evil.webhook(subEvent('customer.subscription.created', 'active', now));
