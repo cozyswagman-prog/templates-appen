@@ -12,7 +12,14 @@ const CORE = [
   'js/version.js',
   'js/save.js',
   'js/storage.js',
+  'js/cloud-config.js',
+  'js/image-assets.js',
+  'js/project-store.js',
+  'js/accounts.js',
+  'js/autosave.js',
+  'vendor/supabase.js',
   'js/export.js',
+  'js/render.js',
   'js/editor.js',
   'js/app.js',
   'templates/index.js',
@@ -63,6 +70,9 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
+  // Cache only the known app shell. Never cache auth, REST responses or customer data.
+  const allowed = CORE.map(path => new URL(path, self.registration.scope).href);
+  if (event.request.headers.has('authorization') || !allowed.includes(event.request.url)) return;
   event.respondWith(
     // 'no-cache' = omvalidera alltid mot servern (GitHub Pages cachar annars
     // filer i 10 min i webbläsaren och uppdateringar dröjer)

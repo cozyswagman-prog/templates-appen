@@ -70,7 +70,7 @@ ${window.fontCss('lora', 'inter')}
 <div class="hero">
   <img class="bg" data-slot="image" data-label="Stor bild högst upp" src="${ph(1600, 900, '#39503f', '#f3ead9', 'Hero-bild · t.ex. fikabordet eller lokalen')}" alt="">
   <div class="hero-inner">
-    <h1 data-slot="text" data-label="Caféets namn">Café Linnéa</h1>
+    <h1 data-slot="text" data-label="Caféets namn" data-contains-shared="business-name">Café Linnéa</h1>
     <p data-slot="text" data-label="Slogan">Surdegsbageri &amp; kafferosteri på hörnet</p>
   </div>
 </div>
@@ -85,7 +85,7 @@ ${window.fontCss('lora', 'inter')}
     </div>
   </div>
 </section>
-<footer><span data-slot="text" data-label="Sidfotstext">© 2026 Café Linnéa · Följ oss gärna @cafelinnea</span></footer>
+<footer><span data-slot="text" data-label="Sidfotstext" data-contains-shared="business-name">© 2026 Café Linnéa · Följ oss gärna @cafelinnea</span></footer>
 </body>
 </html>`;
 
@@ -114,7 +114,7 @@ ${window.fontCss('lora', 'inter')}
     </div>
   </div>
 </section>
-<footer><span data-slot="text" data-label="Sidfotstext (menysidan)">© 2026 Café Linnéa</span></footer>
+<footer><span data-slot="text" data-label="Sidfotstext (menysidan)" data-contains-shared="business-name">© 2026 Café Linnéa</span></footer>
 </body>
 </html>`;
 
@@ -145,7 +145,7 @@ hej@cafelinnea.se</p>
     </div>
   </div>
 </section>
-<footer><span data-slot="text" data-label="Sidfotstext (kontaktsidan)">© 2026 Café Linnéa</span></footer>
+<footer><span data-slot="text" data-label="Sidfotstext (kontaktsidan)" data-contains-shared="business-name">© 2026 Café Linnéa</span></footer>
 </body>
 </html>`;
 

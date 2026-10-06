@@ -85,6 +85,24 @@ html, body {
 .view { height: 100%; }
 [hidden] { display: none !important; }
 
+.account-panel { padding: 20px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+.account-panel h2 { margin: 0; font-size: 18px; }
+.account-panel p { line-height: 1.55; overflow-wrap: anywhere; }
+.account-panel p:empty { display: none; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.account-actions .btn { min-height: 44px; white-space: normal; }
+.account-actions [aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); box-shadow: inset 0 0 0 1px var(--accent); }
+.account-form { display: grid; gap: 14px; max-width: 440px; margin-top: 20px; }
+.account-form label { display: grid; gap: 6px; font-weight: 700; }
+.account-form input { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+.account-form input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.account-form p { margin: 0; font-size: 14px; }
+.autosave-note { flex: 0 0 auto; margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; line-height: 1.5; }
+.recovery-panel { padding: 16px; margin-bottom: 20px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-tint); }
+.recovery-panel h3 { margin: 0 0 8px; }
+.recovery-panel p { line-height: 1.5; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .account-panel { padding: 16px; } .account-actions .btn { flex: 1 1 auto; } }
+
 /* ---------- Galleri ---------- */
 
 .app-header {
@@ -238,6 +256,24 @@ html, body {
 .project-row .p-actions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
 .project-list:not(:empty) { margin-top: 16px; }
 .project-row { box-shadow: none; }
+.version-list { display: grid; gap: 12px; }
+#versions-section { margin-top: 24px; }
+.version-row { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-top: 1px solid var(--border); }
+.version-description { flex: 1; min-width: 0; }
+.version-name { margin: 0 0 6px; font-size: 16px; overflow-wrap: anywhere; }
+.version-meta { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.version-row .btn { flex-shrink: 0; white-space: normal; }
+.version-actions { display: flex; flex-wrap: wrap; gap: 10px; max-width: 440px; }
+.version-download-status { font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; margin: 8px 0 0; }
+.version-download-status:empty { display: none; }
+.version-delete-name { font-weight: 700; overflow-wrap: anywhere; }
+.version-delete-check { display: flex; align-items: center; gap: 12px; min-height: 48px; line-height: 1.5; cursor: pointer; }
+.version-delete-check input { width: 20px; height: 20px; flex-shrink: 0; }
+#versions-section > p { line-height: 1.6; }
+@media (max-width: 900px) {
+  .version-row { align-items: stretch; flex-direction: column; gap: 10px; }
+  .version-row .btn { align-self: flex-start; }
+}
 @media (min-width: 641px) and (max-width: 1000px) {
   .project-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; }
   .project-row .p-meta { grid-column: 1; }

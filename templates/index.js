@@ -250,8 +250,8 @@ window.SiteKit = (function () {
   }
 
   // This function is serialized into the exported page: no editor or server dependency.
-  function runtime(preview) {
-    const doc=document;
+  function runtime(preview, suppliedDocument) {
+    const doc=suppliedDocument || document;
     doc.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{
       const group=button.dataset.filter,value=button.dataset.value;
       doc.querySelectorAll('[data-filter]').forEach(b=>{if(b.dataset.filter===group)b.setAttribute('aria-pressed',String(b===button));});
@@ -268,7 +268,7 @@ window.SiteKit = (function () {
       const valid=(scope)=>{for(const el of scope.querySelectorAll('input,textarea,select'))if(!el.checkValidity()){el.reportValidity();return false;}return true;};
       form.querySelector('.kit-next').addEventListener('click',()=>{if(valid(steps[step])){step++;show();steps[step].querySelector('input,select,textarea')?.focus();}});
       form.querySelector('.kit-back').addEventListener('click',()=>{step=Math.max(0,step-1);show();steps[step].querySelector('input,select,textarea')?.focus();});show();
-      form.addEventListener('submit',async e=>{
+      const submitForm=async e=>{
         e.preventDefault();if(busy)return;
         if(stepped&&step<2){form.querySelector('.kit-next').click();return;}
         const status=form.querySelector('[role=status]');
@@ -281,7 +281,14 @@ window.SiteKit = (function () {
         try{const response=await fetch(form.dataset.endpoint,{method:'POST',body:new FormData(form),headers:{Accept:'application/json'},signal:controller.signal});if(!response.ok)throw Error();status.textContent='Tack! Din förfrågan har skickats. Bokning eller beställning gäller först efter företagets bekräftelse.';form.reset();step=0;show();}
         catch{status.textContent='Vi kunde inte bekräfta att förfrågan kom fram. Uppgifterna finns kvar; kontakta företaget eller försök igen.';}
         finally{clearTimeout(timer);busy=false;submit.disabled=false;}
-      });
+      };
+      form.addEventListener('submit',submitForm);
+      // A sandbox without allow-forms blocks native submission before the submit event.
+      // Keep the preview demonstration in trusted click/keyboard handlers instead.
+      if(preview){
+        form.querySelector('[type=submit]').addEventListener('click',submitForm);
+        form.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.target.matches('input'))submitForm(e);});
+      }
     });
     doc.querySelectorAll('.kit-calculator').forEach(calc=>{
       const update=()=>{
@@ -302,13 +309,44 @@ window.SiteKit = (function () {
     });
   }
   function activate(doc,preview) {
+    // A preview never executes code in the frame, including our exported runtime.
+    // These listeners belong to the trusted editor and only operate on the supplied document.
+    if(preview){runtime(true,doc);return;}
     const script=doc.createElement('script');script.id='kit-runtime';script.textContent='('+runtime.toString()+')('+JSON.stringify(!!preview)+');';doc.body.append(script);
   }
+  // "Använd på alla sidor": sets every data-shared slot and replaces the template's name,
+  // or a name previously used there, inside fields marked data-contains-shared. Own text is kept.
+  const slotsOf=page=>[...new DOMParser().parseFromString(page.html,'text/html').querySelectorAll('[data-slot]')];
+  const containsKey=(el,key)=>(el.getAttribute('data-contains-shared')||'').split(' ').includes(key);
+  function syncShared(project,pages,key,value) {
+    const old=new Set(),targets=[],name=String(value).trim();
+    pages.forEach(page=>{const values=project.values[page.file]||(project.values[page.file]={});slotsOf(page).forEach((el,i)=>{
+      if(el.getAttribute('data-shared')===key){old.add(el.textContent.trim());if(typeof values[i+1]==='string')old.add(values[i+1].trim());values[i+1]=value;}
+      else if(containsKey(el,key))targets.push([values,i+1,el.textContent]);
+    });});
+    old.delete('');old.delete(name);
+    if(!name||!old.size)return 0;
+    const pattern=new RegExp([...old].sort((a,b)=>b.length-a.length).map(s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|'),'g');
+    let changed=0;
+    targets.forEach(([values,num,original])=>{const text=values[num]??original,next=text.replace(pattern,name);if(next!==text){values[num]=next;changed++;}});
+    return changed;
+  }
+  // After the name has been changed, a marked field that still shows the template's name is a warning.
+  function staleShared(project,pages) {
+    const defaults=new Map(),changed=new Set(),targets=[];
+    pages.forEach(page=>{const values=(project.values||{})[page.file]||{};slotsOf(page).forEach((el,i)=>{
+      const key=el.getAttribute('data-shared');
+      if(key){if(!defaults.has(key))defaults.set(key,el.textContent.trim());if(typeof values[i+1]==='string'&&values[i+1].trim()!==el.textContent.trim())changed.add(key);}
+      (el.getAttribute('data-contains-shared')||'').split(' ').filter(Boolean).forEach(k=>targets.push([page,k,el.getAttribute('data-label')||'Ruta '+(i+1),values[i+1]??el.textContent]));
+    });});
+    return targets.filter(([,k,,text])=>changed.has(k)&&defaults.get(k)&&text.includes(defaults.get(k)))
+      .map(([page,k,label])=>page.title+': ”'+label+'” visar fortfarande mallens namn ”'+defaults.get(k)+'”. Tryck ”Använd på alla sidor” vid namnet eller ändra fältet.');
+  }
   function review(project,pages) {
-    const warnings=[],s=settings(project);
+    const warnings=staleShared(project,pages),s=settings(project);
     if(!s.business.phone&&!s.business.email)warnings.push('Lägg till företagets telefon eller e-post under Företag & funktioner.');
     pages.forEach(page=>{const doc=new DOMParser().parseFromString(page.html,'text/html');apply(doc,project,page.file);const disabled=[...doc.querySelectorAll('a[aria-disabled]')].filter(el=>!el.closest('[hidden]')).length;if(disabled)warnings.push(page.title+': '+disabled+' knappar saknar en ansluten länk.');if(doc.querySelector('[data-enquiry]:not([hidden])')&&!endpoint(s.business.formEndpoint))warnings.push(page.title+': formuläret behöver en giltig Formspree-adress.');const p=pageSettings(project,page.file);const defaults=[...doc.querySelectorAll('[data-content]')].filter(el=>!el.closest('[hidden]')&&(!p.content[el.dataset.content]||p.content[el.dataset.content]===el.dataset.original)).length;if(defaults)warnings.push(page.title+': '+defaults+' nya innehållsfält har exempeltext.');});
     return warnings;
   }
-  return {decorate,settings,pageSettings,apply,activate,safeLink,endpoint,review};
+  return {decorate,settings,pageSettings,apply,activate,safeLink,endpoint,review,syncShared};
 })();

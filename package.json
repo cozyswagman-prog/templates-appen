@@ -1,0 +1,33 @@
+{
+  "name": "templates-local-tools",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local rendering and compatibility checks; the browser app remains static.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "test:browser": "node tests/foundation.browser.cjs",
+    "test:accounts": "node tests/accounts.browser.cjs",
+    "test:autosave": "node tests/autosave.browser.cjs",
+    "test:publication": "node tests/publication.browser.cjs",
+    "vendor:supabase": "node tools/vendor-supabase.cjs",
+    "render": "node tools/render-project.cjs",
+    "prepare:publication": "node tools/prepare-publication.cjs",
+    "version:create": "node tools/publication-version.cjs create",
+    "version:check": "node tools/publication-version.cjs check",
+    "start:local": "node tools/local-version-server.cjs",
+    "accounts:prepare-kit": "node tools/account-test-kit.cjs create",
+    "accounts:check-kit": "node tools/account-test-kit.cjs check"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "jszip": "3.10.1",
+    "linkedom": "0.18.13",
+    "sharp": "0.35.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8"
+  }
+}

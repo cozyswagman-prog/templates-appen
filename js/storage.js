@@ -37,7 +37,7 @@ window.Storage = (function () {
       return writeAll(all);
     },
     remove(id) {
-      writeAll(readAll().filter(p => p.id !== id));
+      return writeAll(readAll().filter(p => p.id !== id));
     },
     // Äldre projekt sparade värden platt ({1: "..."}); numera per sidfil.
     migrate(project) {
@@ -67,7 +67,7 @@ window.Storage = (function () {
         try {
           const data = JSON.parse(reader.result);
           const p = data && data.app === 'templates' && data.project;
-          if (!p || !p.templateId || typeof p.values !== 'object') {
+          if (data.version !== 1 || !p || !p.templateId || !p.values || typeof p.values !== 'object' || Array.isArray(p.values)) {
             cb(null, 'Filen är inte en giltig projektfil.');
             return;
           }
@@ -76,6 +76,9 @@ window.Storage = (function () {
             return;
           }
           p.id = this.newId(); // alltid nytt id så inget skrivs över
+          delete p.cloudRevision; // importerade filer är alltid nya projekt
+          delete p.localRevision;
+          delete p.localSaved;
           p.name = p.name || 'Importerat projekt';
           cb(p, null);
         } catch {

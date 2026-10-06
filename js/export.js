@@ -12,90 +12,10 @@ window.Exporter = (function () {
       .replace(/^-+|-+$/g, '') || 'min-hemsida';
   }
 
-  function extFromDataUrl(dataUrl) {
-    const m = /^data:image\/(png|jpeg|jpg|webp|gif|svg\+xml)/.exec(dataUrl);
-    if (!m) return null;
-    return { 'svg+xml': 'svg', jpeg: 'jpg' }[m[1]] || m[1];
-  }
-
-  function dataUrlToBytes(dataUrl) {
-    const comma = dataUrl.indexOf(',');
-    const meta = dataUrl.slice(0, comma);
-    const data = dataUrl.slice(comma + 1);
-    if (meta.includes(';base64')) {
-      const bin = atob(data);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      return bytes;
-    }
-    return new TextEncoder().encode(decodeURIComponent(data));
-  }
-
   async function exportSite(project) {
-    window.Storage.migrate(project);
-    const template = window.TEMPLATES.find(t => t.id === project.templateId);
-    if (!template) throw new Error('Templaten hittades inte');
-    const pages = window.Editor.pagesOf(template);
-
+    const { pages, files, fontFiles } = window.SiteRenderer.render(project);
     const zip = new JSZip();
-    const images = zip.folder('images');
-    const imageFiles = new Map(); // dataUrl -> filnamn (samma bild återanvänds)
-    let imgCount = 0;
-    const fontFiles = new Set(); // "inter-400.woff2" osv. som sidorna refererar
-
-    pages.forEach(page => {
-      const doc = new DOMParser().parseFromString(page.html, 'text/html');
-      const values = project.values[page.file] || {};
-
-      window.SiteKit.apply(doc, project, page.file);
-
-      // Applicera sparade värden i samma nummerordning som editorn
-      doc.querySelectorAll('[data-slot]').forEach((el, i) => {
-        const v = values[i + 1];
-        if (v != null) {
-          if (el.getAttribute('data-slot') === 'image') el.setAttribute('src', v);
-          else el.textContent = v;
-        }
-        el.removeAttribute('data-slot');
-        el.removeAttribute('data-label');
-        el.removeAttribute('data-multiline');
-        el.removeAttribute('data-slot-active');
-        el.removeAttribute('data-shared');
-      });
-
-      // Explicit button settings win over their original numbered text field.
-      window.SiteKit.apply(doc, project, page.file);
-
-      // Sidtitel: projektnamn (+ sidans namn för undersidor)
-      const titleEl = doc.querySelector('title');
-      if (titleEl && project.name) {
-        titleEl.textContent = page.file === pages[0].file
-          ? project.name
-          : project.name + ' – ' + page.title;
-      }
-
-      // Bryt ut uppladdade bilder (data-URL:er) till riktiga filer.
-      // SVG-platshållare som aldrig byttes lämnas kvar inline — de funkar som de är.
-      doc.querySelectorAll('img').forEach(img => {
-        const src = img.getAttribute('src') || '';
-        if (!src.startsWith('data:image/')) return;
-        const ext = extFromDataUrl(src);
-        if (!ext || ext === 'svg') return; // platshållare behålls inline
-        let filename = imageFiles.get(src);
-        if (!filename) {
-          imgCount++;
-          filename = 'bild-' + imgCount + '.' + ext;
-          imageFiles.set(src, filename);
-          images.file(filename, dataUrlToBytes(src));
-        }
-        img.setAttribute('src', 'images/' + filename);
-      });
-
-      window.SiteKit.activate(doc, false);
-      const html = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-      for (const m of html.matchAll(/fonts\/([a-z0-9-]+\.woff2)/g)) fontFiles.add(m[1]);
-      zip.file(page.file, html);
-    });
+    for (const [name, data] of files) zip.file(name, data);
 
     // Packa med de självhostade typsnitten sidorna använder, plus licensen
     if (fontFiles.size) {

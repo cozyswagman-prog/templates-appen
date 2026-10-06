@@ -20,10 +20,46 @@
     <header class="app-header">
       <h1 class="logo">T<span>emplates</span></h1>
       <p class="tagline">Välj en färdig hemsida · byt bilder och texter · ladda ner din sajt</p>
+      <p id="local-version-note" class="tagline" hidden>Lokalt granskningsläge. Den här adressen har egna projekt. Använd Importera projektfil för att ta hit ett projekt från en annan adress.</p>
     </header>
 
     <main class="gallery-main">
+      <section id="account-panel" class="account-panel" aria-labelledby="account-title">
+        <h2 id="account-title">Din arbetsplats</h2>
+        <p id="account-status" role="status">Du arbetar på den här enheten.</p>
+        <div id="account-controls" class="account-actions" hidden>
+          <button class="btn btn-primary" data-account-action="login">Logga in</button>
+          <button class="btn btn-secondary" data-account-action="signup">Skapa konto</button>
+          <button class="btn btn-ghost" data-account-action="reset">Glömt lösenord?</button>
+        </div>
+        <div id="account-signed-in" class="account-actions" hidden>
+          <button id="account-cloud" class="btn btn-secondary" aria-pressed="false">På mitt konto</button>
+          <button id="account-local" class="btn btn-secondary" aria-pressed="true">På den här enheten</button>
+          <button id="account-signout" class="btn btn-ghost">Logga ut</button>
+        </div>
+        <form id="account-form" class="account-form" hidden>
+          <label>E-postadress<input id="account-email" type="email" autocomplete="email" required></label>
+          <label>Lösenord<input id="account-password" type="password" autocomplete="current-password" required aria-describedby="account-password-help"></label>
+          <p id="account-password-help" hidden>Använd minst 12 tecken. Välj ett lösenord som du inte använder någon annanstans.</p>
+          <div class="account-actions">
+            <button id="account-submit" class="btn btn-primary" type="submit">Logga in</button>
+            <button id="account-cancel" class="btn btn-secondary" type="button">Avbryt</button>
+          </div>
+        </form>
+        <p id="account-feedback" role="status" aria-live="polite"></p>
+        <p id="image-storage-note" hidden>På kontot finns 100 bildplatser, högst 2 MB per anpassad bild. Samma bild kan återanvändas i flera projekt. Bildplatser frigörs inte direkt när ett projekt tas bort.</p>
+      </section>
       <section id="my-projects-section" class="projects-section">
+        <aside id="recovery-panel" class="recovery-panel" aria-labelledby="recovery-title" hidden>
+          <h3 id="recovery-title">Fortsätt efter avbrottet</h3>
+          <p id="recovery-description"></p>
+          <p>Återställningen skapar ett nytt projekt så att en nyare sparad version finns kvar.</p>
+          <div class="account-actions">
+            <button id="recovery-open" class="btn btn-primary">Återställ som nytt projekt</button>
+            <button id="recovery-file" class="btn btn-secondary">Spara kopian som fil</button>
+            <button id="recovery-discard" class="btn btn-ghost">Ta bort återställningskopian</button>
+          </div>
+        </aside>
         <div class="section-head">
           <h2>Mina projekt</h2>
           <button id="btn-import" class="btn btn-secondary btn-small">Importera projektfil</button>
@@ -31,7 +67,21 @@
         </div>
         <p class="storage-note">Projekten sparas i den här webbläsaren. Spara som fil för en säkerhetskopia eller för att fortsätta på en annan enhet.</p>
         <p id="no-projects" class="empty-note" hidden>Välj en mall nedan för att börja. När du sparar finns ditt projekt här, i den här webbläsaren.</p>
+        <p id="projects-error" class="dialog-error" role="alert" hidden></p>
+        <button id="projects-retry" class="btn btn-secondary" hidden>Försök hämta projekten igen</button>
         <div id="my-projects" class="project-list"></div>
+      </section>
+
+      <section id="versions-section" class="projects-section" aria-labelledby="versions-title" hidden>
+        <div class="section-head">
+          <h2 id="versions-title">Granskningsversioner på datorn</h2>
+          <button id="versions-refresh" class="btn btn-secondary btn-small">Uppdatera listan</button>
+        </div>
+        <p>Här finns de separata kopiorna av dina hemsidor, även efter omladdning. Granska en version och ladda ner samma hemsida som ZIP. Senare ändringar i utkastet ingår inte. De är inte publicerade. Fortsätt redigera under Mina projekt.</p>
+        <p id="versions-status" role="status" aria-live="polite"></p>
+        <p id="versions-error" class="dialog-error" role="alert" hidden></p>
+        <p id="versions-unavailable" hidden></p>
+        <div id="versions-list" class="version-list" aria-busy="false"></div>
       </section>
 
       <section>
@@ -54,10 +104,13 @@
         <div class="more-actions">
           <button id="btn-project-file" class="btn btn-secondary">Spara som projektfil</button>
           <button id="btn-export" class="btn btn-primary">Exportera sajt (.zip)</button>
+          <button id="btn-version" class="btn btn-secondary" hidden>Skapa version för granskning</button>
         </div>
       </details>
       <span id="save-status" class="save-status" role="status">Inte sparat ännu</span>
     </div>
+
+    <p id="autosave-note" class="autosave-note">Ändringar sparas automatiskt efter en kort paus.</p>
 
     <div id="page-tabs" class="page-tabs" hidden></div>
 
@@ -82,7 +135,7 @@
           <button id="btn-badges" class="btn btn-ghost" aria-pressed="true">Dölj nummer</button>
         </div>
         <div id="preview-viewport" class="preview-viewport">
-          <div id="preview-stage"><iframe id="preview-frame" title="Förhandsvisning"></iframe></div>
+          <div id="preview-stage"><iframe id="preview-frame" title="Förhandsvisning" sandbox="allow-same-origin"></iframe></div>
         </div>
       </div>
     </div>
@@ -90,12 +143,20 @@
 
   <dialog id="leave-dialog" aria-labelledby="leave-title">
     <h2 id="leave-title">Spara dina ändringar?</h2>
-    <p>Du har osparade ändringar. Spara dem på den här enheten innan du går till galleriet.</p>
+    <p>Du har osparade ändringar. Spara dem innan du går till galleriet.</p>
     <p id="leave-error" class="dialog-error" role="alert" hidden></p>
     <div class="dialog-actions">
       <button id="leave-cancel" class="btn btn-secondary" autofocus>Fortsätt redigera</button>
       <button id="leave-discard" class="btn btn-ghost">Lämna utan att spara</button>
       <button id="leave-save" class="btn btn-primary">Spara och gå till galleriet</button>
+    </div>
+  </dialog>
+  <dialog id="session-dialog" aria-labelledby="session-title">
+    <h2 id="session-title">Din inloggning eller lagringsplats ändrades</h2>
+    <p>Redigeringen har stoppats så att projektet inte sparas på fel konto. Ladda ner dina senaste ändringar som projektfil innan du lämnar.</p>
+    <div class="dialog-actions">
+      <button id="session-backup" class="btn btn-primary" autofocus>Spara ändringarna som fil</button>
+      <button id="session-leave" class="btn btn-secondary">Lämna redigeringen</button>
     </div>
   </dialog>
   <dialog id="export-dialog" aria-labelledby="export-title">
@@ -106,6 +167,31 @@
     <div class="dialog-actions">
       <button id="export-cancel" class="btn btn-secondary" autofocus>Fortsätt redigera</button>
       <button id="confirm-export" class="btn btn-primary">Ladda ner sajt (.zip)</button>
+    </div>
+  </dialog>
+  <dialog id="version-delete-dialog" aria-labelledby="version-delete-title">
+    <h2 id="version-delete-title">Ta bort granskningskopian?</h2>
+    <p id="version-delete-name" class="version-delete-name"></p>
+    <p id="version-delete-meta"></p>
+    <p>Kopians sidor, bilder och typsnitt tas bort permanent från datorn. Granskningslänken slutar fungera. Ditt redigerbara utkast under Mina projekt och andra granskningsversioner finns kvar.</p>
+    <label class="version-delete-check"><input id="version-delete-check" type="checkbox"> Jag vill ta bort den här kopian permanent.</label>
+    <p id="version-delete-status" role="status" aria-live="polite"></p>
+    <p id="version-delete-error" class="dialog-error" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button id="version-delete-cancel" class="btn btn-secondary" autofocus>Behåll versionen</button>
+      <button id="version-delete-confirm" class="btn btn-danger" disabled>Ta bort permanent</button>
+    </div>
+  </dialog>
+  <dialog id="version-dialog" aria-labelledby="version-title">
+    <h2 id="version-title">Skapa version för granskning</h2>
+    <p>En separat kopia med dina senaste texter och bilder sparas på den här datorn. Du kan sedan fortsätta redigera utkastet. Hemsidan publiceras inte på nätet.</p>
+    <p>Den nya kopian får en kontroll av kvarvarande malltexter, exempelbilder och funktioner som behöver anslutas. Du får också råd om vad du behöver prova själv.</p>
+    <p id="version-status" role="status" aria-live="polite"></p>
+    <p id="version-error" class="dialog-error" role="alert" hidden></p>
+    <div class="dialog-actions">
+      <button id="version-close" class="btn btn-secondary" autofocus>Fortsätt redigera</button>
+      <button id="version-create" class="btn btn-primary">Skapa granskningsversion</button>
+      <a id="version-open" class="btn btn-primary" target="_blank" rel="noopener" hidden>Öppna granskningsversion</a>
     </div>
   </dialog>
   <div id="toast" class="toast" role="status" hidden></div>
@@ -123,7 +209,7 @@
     // Service worker gör appen installerbar, offline-kapabel och självuppdaterande:
     // när en ny version deployats laddas appen om automatiskt — men aldrig mitt
     // i en redigering, då visas bara ett meddelande.
-    if ('serviceWorker' in navigator) {
+    if (!window.__templatesLocal && 'serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').then(reg => {
         reg.addEventListener('updatefound', () => {
           const nySw = reg.installing;
@@ -155,7 +241,13 @@
   <script src="templates/hemservice.js"></script>
   <script src="js/save.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/cloud-config.js"></script>
+  <script src="js/image-assets.js"></script>
+  <script src="js/project-store.js"></script>
+  <script src="js/accounts.js"></script>
+  <script src="js/autosave.js"></script>
   <script src="js/export.js"></script>
+  <script src="js/render.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/app.js"></script>
 </body>

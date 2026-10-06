@@ -13,9 +13,7 @@ window.Editor = (function () {
 
   // Normaliserar en template till en lista av sidor (bakåtkompatibel med t.html)
   function pagesOf(template) {
-    if (!template.enrichedPages) template.enrichedPages = (template.pages || [{ file: 'index.html', title: 'Hem', html: template.html }])
-      .map(page => window.SiteKit.decorate(template, page));
-    return template.enrichedPages;
+    return window.SiteRenderer.pagesOf(template);
   }
 
   // Värden för en viss sida i projektet
@@ -29,13 +27,24 @@ window.Editor = (function () {
   // ---------- Hjälpare ----------
 
   function downscaleImage(file, maxSide, cb) {
+    if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type)) {
+      cb(null, 'Välj en PNG-, JPEG-, WebP- eller GIF-bild.'); return;
+    }
+    if (file.size > 12 * 1024 * 1024) { cb(null, 'Välj en bild som är mindre än 12 MB.'); return; }
+    const done = data => {
+      try { window.ImageAssets.parse(data); cb(data); }
+      catch (error) { cb(null, error.message); }
+    };
     const reader = new FileReader();
     reader.onload = () => {
+      try { window.ImageAssets.parse(reader.result, 12 * 1024 * 1024); }
+      catch (error) { cb(null, error.message); return; }
       const img = new Image();
       img.onload = () => {
+        if (!img.width || !img.height || img.width * img.height > 40000000) { cb(null, 'Bilden har för hög upplösning. Välj en bild på högst 40 megapixel.'); return; }
         const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
         if (scale === 1 && file.size < 400 * 1024) {
-          cb(reader.result); // liten nog, använd som den är
+          done(reader.result); // liten nog, använd som den är
           return;
         }
         const canvas = document.createElement('canvas');
@@ -43,7 +52,7 @@ window.Editor = (function () {
         canvas.height = Math.round(img.height * scale);
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         const isPng = file.type === 'image/png';
-        cb(canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.85));
+        done(canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.85));
       };
       img.onerror = () => cb(null);
       img.src = reader.result;
@@ -154,7 +163,7 @@ window.Editor = (function () {
       btn.textContent = 'Byt bild…';
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
+      input.accept = 'image/png,image/jpeg,image/webp,image/gif';
       input.setAttribute('aria-label', slot.label);
       btn.addEventListener('click', () => input.click());
       row.append(thumb, btn, input);
@@ -166,11 +175,11 @@ window.Editor = (function () {
         input.value = '';
         btn.disabled = true;
         if (opts.onBusy) opts.onBusy(true);
-        downscaleImage(file, 1600, dataUrl => {
+        downscaleImage(file, 1600, (dataUrl, error) => {
           btn.disabled = false;
           if (opts.onBusy) opts.onBusy(false);
           if (!current || current.project !== project) return;
-          if (!dataUrl) { window.showToast('Kunde inte läsa bilden.'); return; }
+          if (!dataUrl) { window.showToast(error || 'Kunde inte läsa bilden.'); return; }
           slot.el.setAttribute('src', dataUrl);
           thumb.src = dataUrl;
           values[slot.num] = dataUrl;
@@ -204,14 +213,20 @@ window.Editor = (function () {
         sync.textContent = 'Använd på alla sidor';
         sync.addEventListener('click', () => {
           const template = window.TEMPLATES.find(t => t.id === project.templateId);
-          pagesOf(template).forEach(page => {
-            const doc = new DOMParser().parseFromString(page.html, 'text/html');
-            doc.querySelectorAll('[data-slot]').forEach((el, i) => {
-              if (el.getAttribute('data-shared') === sharedKey) pageValues(project, page.file)[i + 1] = input.value;
-            });
+          const changed = window.SiteKit.syncShared(project, pagesOf(template), sharedKey, input.value);
+          // Fält på den öppna sidan (t.ex. sidfoten) visar det nya namnet direkt.
+          if (current && current.project === project) current.slots.forEach(s => {
+            const v = pageValues(project, current.page.file)[s.num];
+            if (s.type === 'image' || v == null || s.el.textContent === v) return;
+            s.el.textContent = v;
+            const control = s.field && s.field.querySelector('input[type="text"], textarea');
+            if (control) control.value = v;
           });
           if (opts.onChange) opts.onChange();
-          window.showToast('Namnet används nu på alla sidor.');
+          window.showToast(changed
+            ? 'Namnet används nu på alla sidor, även i ' + changed + (changed === 1 ? ' annat fält' : ' andra fält') + ' där det gamla namnet stod.'
+            : 'Namnet används nu på alla sidor.');
+          schedulePosition();
         });
         wrap.appendChild(sync);
       }
@@ -332,7 +347,7 @@ window.Editor = (function () {
       if(!el.hasAttribute('data-slot')){
         const label=document.createElement('label');label.className='settings-field';label.textContent='Byt bild';
         const input=document.createElement('input');input.type='file';input.accept='image/png,image/jpeg,image/webp,image/gif';input.setAttribute('aria-label','Byt bild – '+el.dataset.caption);
-        input.addEventListener('change',()=>{const file=input.files[0];if(!file)return;opts.onBusy?.(true);input.disabled=true;downscaleImage(file,1600,data=>{opts.onBusy?.(false);input.disabled=false;if(!current||current.project!==project)return;if(data){get().src=data;changed();}else window.showToast('Bilden kunde inte läsas.');});});label.append(input);box.append(label);
+        input.addEventListener('change',()=>{const file=input.files[0];if(!file)return;input.value='';opts.onBusy?.(true);input.disabled=true;downscaleImage(file,1600,(data,error)=>{opts.onBusy?.(false);input.disabled=false;if(!current||current.project!==project)return;if(data){get().src=data;changed();}else window.showToast(error||'Bilden kunde inte läsas.');});});label.append(input);box.append(label);
       }else note(box,'Byt själva bilden i dess numrerade ruta.');
       field(box,'Bildbeskrivning – '+el.dataset.caption,el.alt,value=>{get().alt=value;});
       field(box,'Bildens fokus – '+el.dataset.caption,saved.images[key]?.focus||'center',value=>{get().focus=value;},'select',[['center','Mitten'],['top','Övre delen'],['bottom','Nedre delen'],['left','Vänster'],['right','Höger']]);
@@ -357,6 +372,7 @@ window.Editor = (function () {
     const values = pageValues(project, page.file);
 
     const f = frame();
+    f.setAttribute('sandbox', 'allow-same-origin');
     f.onload = function () {
       const doc = f.contentDocument;
       const win = f.contentWindow;
@@ -435,7 +451,7 @@ window.Editor = (function () {
       setTimeout(positionBadges, 300); // efter att bilder/typsnitt satt sig
     };
 
-    f.srcdoc = page.html;
+    f.srcdoc = window.SiteRenderer.previewHtml(page.html);
   }
 
   function close() {
