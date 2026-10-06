@@ -93,7 +93,7 @@ ${window.fontCss('lora', 'inter')}
 <style>
   .hero { position: relative; min-height: clamp(480px, 74vh, 660px); display: flex; align-items: center; justify-content: center; text-align: center; color: #fff; overflow: hidden; background: var(--green-deep); }
   .hero img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20, 30, 24, .35) 0%, rgba(20, 30, 24, .55) 55%, rgba(20, 30, 24, .78) 100%); }
+  .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(20, 30, 24, .52) 0%, rgba(20, 30, 24, .62) 50%, rgba(20, 30, 24, .82) 100%); }
   .hero-inner { position: relative; z-index: 1; max-width: 820px; padding: 80px 24px; }
   .hero-inner h1 { font-size: clamp(44px, 7vw, 78px); line-height: 1.04; letter-spacing: -.02em; margin-bottom: 18px; }
   .hero-inner p { font-family: 'Lora', Georgia, serif; font-size: clamp(19px, 2.2vw, 23px); line-height: 1.45; color: rgba(255, 255, 255, .92); max-width: 34ch; margin: 0 auto; }
@@ -110,7 +110,7 @@ ${window.fontCss('lora', 'inter')}
   @media (max-width: 680px) { .tre { grid-template-columns: 1fr; max-width: 520px; margin: 0 auto; gap: 24px; } }
 </style>
 <div class="hero">
-  <img class="bg" data-slot="image" data-label="Stor bild högst upp" src="${ph(1600, 900, '#39503f', '#f3ead9', 'Hero-bild · t.ex. fikabordet eller lokalen')}" alt="">
+  <img class="bg" data-slot="image" data-label="Stor bild högst upp" src="${window.ex('cafe-hero', 1600, 900, '#39503f', '#f3ead9', 'Hero-bild · t.ex. fikabordet eller lokalen')}" alt="">
   <div class="hero-inner">
     <h1 data-slot="text" data-label="Caféets namn" data-contains-shared="business-name">Café Linnéa</h1>
     <p data-slot="text" data-label="Slogan">Surdegsbageri &amp; kafferosteri på hörnet</p>
@@ -121,9 +121,9 @@ ${window.fontCss('lora', 'inter')}
     <h2 class="section-title" data-slot="text" data-label="Rubrik mitt på sidan">Bakat i gryningen, serverat med kärlek</h2>
     <p class="section-sub" data-slot="text" data-label="Undertext">Allt görs för hand i vårt eget bageri</p>
     <div class="tre">
-      <div><img data-slot="image" data-label="Bild 1 av tre" src="${ph(700, 520, '#e3dccd', '#2f4a3a', 'Bild 1')}" alt=""><h3 data-slot="text" data-label="Ruta 1 – rubrik">Surdegsbröd</h3><p data-slot="text" data-label="Ruta 1 – text">Bakas varje morgon på svenskt kulturmjöl.</p></div>
-      <div><img data-slot="image" data-label="Bild 2 av tre" src="${ph(700, 520, '#e3dccd', '#2f4a3a', 'Bild 2')}" alt=""><h3 data-slot="text" data-label="Ruta 2 – rubrik">Eget rosteri</h3><p data-slot="text" data-label="Ruta 2 – text">Vi rostar bönorna själva, ljusrostat och spännande.</p></div>
-      <div><img data-slot="image" data-label="Bild 3 av tre" src="${ph(700, 520, '#e3dccd', '#2f4a3a', 'Bild 3')}" alt=""><h3 data-slot="text" data-label="Ruta 3 – rubrik">Fika klassikerna</h3><p data-slot="text" data-label="Ruta 3 – text">Kanelbullar, kardemumma och morotskaka.</p></div>
+      <div><img data-slot="image" data-label="Bild 1 av tre" src="${window.ex('cafe-bread', 700, 520, '#e3dccd', '#2f4a3a', 'Bild 1')}" alt=""><h3 data-slot="text" data-label="Ruta 1 – rubrik">Surdegsbröd</h3><p data-slot="text" data-label="Ruta 1 – text">Bakas varje morgon på svenskt kulturmjöl.</p></div>
+      <div><img data-slot="image" data-label="Bild 2 av tre" src="${window.ex('cafe-coffee', 700, 520, '#e3dccd', '#2f4a3a', 'Bild 2')}" alt=""><h3 data-slot="text" data-label="Ruta 2 – rubrik">Eget rosteri</h3><p data-slot="text" data-label="Ruta 2 – text">Vi rostar bönorna själva, ljusrostat och spännande.</p></div>
+      <div><img data-slot="image" data-label="Bild 3 av tre" src="${window.ex('cafe-buns', 700, 520, '#e3dccd', '#2f4a3a', 'Bild 3')}" alt=""><h3 data-slot="text" data-label="Ruta 3 – rubrik">Fika klassikerna</h3><p data-slot="text" data-label="Ruta 3 – text">Kanelbullar, kardemumma och morotskaka.</p></div>
     </div>
   </div>
 </section>
@@ -178,7 +178,7 @@ ${window.fontCss('lora', 'inter')}
     <h1 class="section-title" data-slot="text" data-label="Rubrik för kontaktsidan">Hitta till oss</h1>
     <p class="section-sub" data-slot="text" data-label="Undertext för kontaktsidan">Vi ses över en kopp</p>
     <div class="kgrid">
-      <img data-slot="image" data-label="Bild på kontaktsidan" src="${ph(800, 640, '#e3dccd', '#2f4a3a', 'Bild · t.ex. entrén eller lokalen')}" alt="">
+      <img data-slot="image" data-label="Bild på kontaktsidan" src="${window.ex('cafe-kontakt', 800, 640, '#e3dccd', '#2f4a3a', 'Bild · t.ex. entrén eller lokalen')}" alt="">
       <div>
         <h3>Öppettider</h3>
         <p data-slot="text" data-multiline data-label="Öppettider">Mån–Fre: 07.30–17.00

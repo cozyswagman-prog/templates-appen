@@ -37,7 +37,8 @@ test('A published site serves exactly the rendered files with safe headers and r
   assert.equal(index.headers['Cache-Control'], 'public, max-age=0, must-revalidate');
   const again = await publisher.serve('qa-cafe.sites.test', '/', { ifNoneMatch: index.headers.ETag });
   assert.equal(again.status, 304); assert.equal(again.body, null);
-  assert.equal((await publisher.serve('qa-cafe.sites.test', '/images/bild-1.png')).headers['Content-Type'], 'image/png');
+  const firstImage = [...expected.keys()].find(n => n.startsWith('images/'));
+  assert.equal((await publisher.serve('qa-cafe.sites.test', '/' + firstImage)).headers['Content-Type'], 'image/' + (firstImage.endsWith('.png') ? 'png' : 'webp'));
 });
 
 test('Only files the exporter creates are reachable: no manifest, versions, traversal or other sites', async () => {
@@ -73,7 +74,7 @@ test('An interrupted or incomplete job leaves the previous site untouched', asyn
   const stable = body(await publisher.serve('qa-cafe.sites.test', '/meny.html'));
   puts = 0; failAfter = 3;
   await assert.rejects(publisher.publish('qa-cafe', cafe('Avbruten version')), /nätet bröts/);
-  failAfter = Infinity; drop = 'images/bild-1.png';
+  failAfter = Infinity; drop = [...renderProject(cafe('Ofullständig version')).keys()].find(n => n.startsWith('images/'));
   await assert.rejects(publisher.publish('qa-cafe', cafe('Ofullständig version')), { code: 'incomplete' });
   assert.equal((await sites.get('qa-cafe')).revision, 1);
   assert.equal(body(await publisher.serve('qa-cafe.sites.test', '/meny.html')), stable);

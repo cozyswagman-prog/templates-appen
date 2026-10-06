@@ -47,6 +47,12 @@ window.ph = function (w, h, bg, fg, label) {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 };
 
+// Exempelbild (templates/exempelbilder.js) om den finns, annars den tonade platshållaren. Kundens bild ersätter alltid.
+window.ex = function (key, w, h, bg, fg, label) {
+  const src = window.EXEMPEL && window.EXEMPEL[key];
+  return typeof src === 'string' && /^data:image\/webp;base64,/.test(src) ? src : window.ph(w, h, bg, fg, label);
+};
+
 // Stable, named additions. Original numbered data-slot fields are never moved.
 // Kept in this precached file so the complete editor also works offline.
 window.SiteKit = (function () {
@@ -210,6 +216,8 @@ window.SiteKit = (function () {
     doc.querySelectorAll('[data-content]').forEach(el=>el.dataset.original=el.textContent);
     doc.querySelectorAll('a[href^="#"]:not([data-link-key])').forEach(el=>el.dataset.linkKey='fragment-'+el.getAttribute('href').slice(1));
     doc.querySelectorAll('[data-link-key]').forEach(el=>el.dataset.defaultHref=el.getAttribute('href')||'');
+    const examples={cafe:{'weekly.photo':'cafe-weekly','visit.photo':'cafe-visit'},restaurang:{'lunch.photo':'rest-lunch','signature.photo':'rest-kitchen'},butik:{'collection.photo':'butik-table'},hemservice:{'estimate.photo':'hem-supplies'}}[id]||{};
+    doc.querySelectorAll('img[data-image-key]').forEach(img=>{const key=examples[img.dataset.imageKey];const src=key&&window.EXEMPEL&&window.EXEMPEL[key];if(typeof src==='string'){img.setAttribute('src',src);img.removeAttribute('data-ph-palette');}});
     doc.querySelectorAll('img[data-ph-palette]').forEach(img=>{img.setAttribute('src',window.ph(1000,750,colors[3],colors[2],img.dataset.caption));img.removeAttribute('data-ph-palette');});
     return {...page,html:'<!DOCTYPE html>\n'+doc.documentElement.outerHTML};
   }

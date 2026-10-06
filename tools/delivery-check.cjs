@@ -46,7 +46,15 @@ function checkDelivery(input, files) {
     add('empty', 'Fyll i eller dölj tomma texter', 'Öppna den angivna rutan eller Nya texter i editorn. Dölj hela avsnittet om det inte ska vara med.', empty);
     add('template-text', 'Gå igenom text som finns kvar från mallen', 'Texten är oförändrad från mallen. Den kan passa, men kontrollera särskilt namn, priser och öppettider. Detta är ett råd, inte ett konstaterat fel.', unchanged);
     const placeholders = visible('img').filter(el => /^data:image\/svg\+xml[,;]/.test(el.getAttribute('src') || ''));
-    add('images', 'Byt kvarvarande exempelbilder', 'Välj egna bilder i bildrutorna eller under Nya bilder. Även bilder bakom Före/Efter-knappar kontrolleras.', placeholders.map(el => el.getAttribute('data-caption') || 'Exempelbild ' + ([...actual.querySelectorAll('img')].indexOf(el) + 1)));
+    // Mallens exempelfoton (templates/exempelbilder.js) får användas, men visar inte kundens eget företag.
+    const exampleSources = new Set(Object.values(runtime.EXEMPEL || {})), examples = [];
+    slots.forEach((el, i) => {
+      if (el.getAttribute('data-slot') !== 'image' || !included(el)) return;
+      const value = project.values[page.file]?.[i + 1];
+      if (exampleSources.has(value != null ? value : el.getAttribute('src'))) examples.push('Ruta ' + (i + 1) + ' – ' + (el.getAttribute('data-label') || 'Bild'));
+    });
+    doc.querySelectorAll('img[data-image-key]').forEach(el => { if (included(el) && exampleSources.has(el.getAttribute('src'))) examples.push(el.getAttribute('data-caption') || 'Bild i extra avsnitt'); });
+    add('images', 'Byt kvarvarande exempelbilder', 'Välj egna bilder i bildrutorna eller under Nya bilder. Exempelfotona får användas, men egna bilder visar ert eget företag. Även bilder bakom Före/Efter-knappar kontrolleras.', [...placeholders.map(el => el.getAttribute('data-caption') || 'Exempelbild ' + ([...actual.querySelectorAll('img')].indexOf(el) + 1)), ...examples]);
     const inactive = visible('a[aria-disabled="true"]');
     add('links', 'Anslut knappar som saknar ett mål', 'Öppna Knappar & länkar eller Företag & funktioner. Ange en fungerande destination eller dölj avsnittet om det inte behövs.', inactive.map(el => text(el.textContent).slice(0, 120) || 'Knapp utan text'));
     const forms = visible('[data-enquiry]');

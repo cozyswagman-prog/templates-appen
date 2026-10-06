@@ -207,7 +207,7 @@ ${window.fontCss('outfit', 'inter')}
 </div>
 
 <div class="hero">
-  <img class="bg" data-slot="image" data-label="Stor bild högst upp" src="${ph(1600, 900, '#2a3950', '#f5b50a', 'Hero-bild · t.ex. ett pågående bygge')}" alt="">
+  <img class="bg" data-slot="image" data-label="Stor bild högst upp" src="${window.ex('bygg-hero', 1600, 900, '#2a3950', '#f5b50a', 'Hero-bild · t.ex. ett pågående bygge')}" alt="">
   <div class="wrap">
     <h1 data-slot="text" data-label="Stor rubrik">Hantverk som håller i generationer</h1>
     <p data-slot="text" data-label="Text under rubriken">Vi hjälper dig med allt från renovering till nybyggnation. Fast pris, tydlig tidsplan och alltid fackmannamässigt utfört.</p>
@@ -232,9 +232,9 @@ ${window.fontCss('outfit', 'inter')}
     <h2 class="section-title" data-slot="text" data-label="Rubrik för referenser">Utvalda projekt</h2>
     <p class="section-sub">&nbsp;</p>
     <div class="project-grid">
-      <figure class="project"><img data-slot="image" data-label="Projektbild 1" src="${ph(800, 600, '#d8dde5', '#14233c', 'Projektbild 1')}" alt=""><figcaption data-slot="text" data-label="Projekt 1 – bildtext">Villa Ekudden — totalrenovering</figcaption></figure>
-      <figure class="project"><img data-slot="image" data-label="Projektbild 2" src="${ph(800, 600, '#d8dde5', '#14233c', 'Projektbild 2')}" alt=""><figcaption data-slot="text" data-label="Projekt 2 – bildtext">Badrum, Täby — 2025</figcaption></figure>
-      <figure class="project"><img data-slot="image" data-label="Projektbild 3" src="${ph(800, 600, '#d8dde5', '#14233c', 'Projektbild 3')}" alt=""><figcaption data-slot="text" data-label="Projekt 3 – bildtext">Attefallshus, Nacka</figcaption></figure>
+      <figure class="project"><img data-slot="image" data-label="Projektbild 1" src="${window.ex('bygg-kitchen', 800, 600, '#d8dde5', '#14233c', 'Projektbild 1')}" alt=""><figcaption data-slot="text" data-label="Projekt 1 – bildtext">Villa Ekudden — totalrenovering</figcaption></figure>
+      <figure class="project"><img data-slot="image" data-label="Projektbild 2" src="${window.ex('bygg-bath', 800, 600, '#d8dde5', '#14233c', 'Projektbild 2')}" alt=""><figcaption data-slot="text" data-label="Projekt 2 – bildtext">Badrum, Täby — 2025</figcaption></figure>
+      <figure class="project"><img data-slot="image" data-label="Projektbild 3" src="${window.ex('bygg-small', 800, 600, '#d8dde5', '#14233c', 'Projektbild 3')}" alt=""><figcaption data-slot="text" data-label="Projekt 3 – bildtext">Attefallshus, Nacka</figcaption></figure>
     </div>
   </div>
 </section>

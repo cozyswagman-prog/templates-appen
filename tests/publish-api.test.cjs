@@ -46,9 +46,12 @@ test('The owner publishes an account project; images come from the account and a
   assert.equal(r.status, 200, JSON.stringify(body)); assert.equal(body.url, 'https://cafe-a.sites.test/'); assert.equal(body.projectRevision, 4);
   assert.equal(r.headers.get('Access-Control-Allow-Origin'), APP);
   const kontakt = await w.publisher.serve('cafe-a.sites.test', '/kontakt.html');
-  assert.match(Buffer.from(kontakt.body).toString(), /images\/bild-\d\.png/);
+  assert.match(Buffer.from(kontakt.body).toString(), /images\/bild-\d+\.png/);
   const served = [];
-  for (const n of [1, 2]) { const img = await w.publisher.serve('cafe-a.sites.test', '/images/bild-' + n + '.png'); if (img.status === 200) served.push(Buffer.from(img.body)); }
+  // Example photos take some image numbers, so serve every PNG the pages reference.
+  const names = new Set();
+  for (const page of ['/', '/meny.html', '/kontakt.html']) for (const [m] of Buffer.from((await w.publisher.serve('cafe-a.sites.test', page)).body).toString().matchAll(/images\/bild-\d+\.png/g)) names.add(m);
+  for (const name of names) { const img = await w.publisher.serve('cafe-a.sites.test', '/' + name); if (img.status === 200) served.push(Buffer.from(img.body)); }
   assert.ok(served.some(b => b.equals(png)) && served.some(b => b.equals(png2)), 'slot image and named image are both published');
   assert.ok(w.state.calls.every(p => !/service|admin/.test(p)));
 });

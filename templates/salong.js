@@ -143,7 +143,7 @@ ${window.fontCss('playfair', 'inter')}
     <p data-slot="text" data-label="Text under rubriken">Klippning, färg och styling i hjärtat av stan. Vi tar hand om dig från första konsultation till färdig look.</p>
     <a class="cta" href="#boka" data-slot="text" data-label="Knapptext">Boka tid</a>
   </div>
-  <img data-slot="image" data-label="Hero-bild till höger" src="${ph(900, 1000, '#e3cdc7', '#b76e79', 'Bild på salongen eller en frisyr')}" alt="">
+  <img data-slot="image" data-label="Hero-bild till höger" src="${window.ex('salong-hero', 900, 1000, '#e3cdc7', '#b76e79', 'Bild på salongen eller en frisyr')}" alt="">
 </div>
 
 <section>

@@ -144,7 +144,7 @@ ${window.fontCss('playfair', 'inter')}
       <h1 data-slot="text" data-label="Stor rubrik">Noga utvalda ting för ditt hem</h1>
       <p data-slot="text" data-label="Text under rubriken">Vi handplockar keramik, textil och inredning från små nordiska producenter. Varje föremål har en historia.</p>
     </div>
-    <img data-slot="image" data-label="Hero-bild" src="${ph(900, 700, '#e5e0db', '#44403c', 'Hero-bild · t.ex. en produktbild')}" alt="">
+    <img data-slot="image" data-label="Hero-bild" src="${window.ex('butik-hero', 900, 700, '#e5e0db', '#44403c', 'Hero-bild · t.ex. en produktbild')}" alt="">
   </div>
 </div>
 
@@ -153,27 +153,27 @@ ${window.fontCss('playfair', 'inter')}
     <h2 class="section-title" data-slot="text" data-label="Rubrik för produkter">Våra favoriter just nu</h2>
     <div class="product-grid">
       <div class="product">
-        <img data-slot="image" data-label="Produktbild 1" src="${ph(700, 700, '#efece8', '#57534e', 'Produktbild 1')}" alt="">
+        <img data-slot="image" data-label="Produktbild 1" src="${window.ex('butik-vase', 700, 700, '#efece8', '#57534e', 'Produktbild 1')}" alt="">
         <div class="pbody"><b data-slot="text" data-label="Produkt 1 – namn">Vas Alva</b><small data-slot="text" data-label="Produkt 1 – beskrivning">Handdrejad stengodsvas, 18 cm</small><span class="pris" data-slot="text" data-label="Produkt 1 – pris">549 kr</span></div>
       </div>
       <div class="product">
-        <img data-slot="image" data-label="Produktbild 2" src="${ph(700, 700, '#efece8', '#57534e', 'Produktbild 2')}" alt="">
+        <img data-slot="image" data-label="Produktbild 2" src="${window.ex('butik-throw', 700, 700, '#efece8', '#57534e', 'Produktbild 2')}" alt="">
         <div class="pbody"><b data-slot="text" data-label="Produkt 2 – namn">Pläd Fjäll</b><small data-slot="text" data-label="Produkt 2 – beskrivning">100 % ull, vävd i Sverige</small><span class="pris" data-slot="text" data-label="Produkt 2 – pris">895 kr</span></div>
       </div>
       <div class="product">
-        <img data-slot="image" data-label="Produktbild 3" src="${ph(700, 700, '#efece8', '#57534e', 'Produktbild 3')}" alt="">
+        <img data-slot="image" data-label="Produktbild 3" src="${window.ex('butik-candle', 700, 700, '#efece8', '#57534e', 'Produktbild 3')}" alt="">
         <div class="pbody"><b data-slot="text" data-label="Produkt 3 – namn">Ljusstake Brand</b><small data-slot="text" data-label="Produkt 3 – beskrivning">Gjuten mässing, set om två</small><span class="pris" data-slot="text" data-label="Produkt 3 – pris">395 kr</span></div>
       </div>
       <div class="product">
-        <img data-slot="image" data-label="Produktbild 4" src="${ph(700, 700, '#efece8', '#57534e', 'Produktbild 4')}" alt="">
+        <img data-slot="image" data-label="Produktbild 4" src="${window.ex('butik-mug', 700, 700, '#efece8', '#57534e', 'Produktbild 4')}" alt="">
         <div class="pbody"><b data-slot="text" data-label="Produkt 4 – namn">Mugg Rand</b><small data-slot="text" data-label="Produkt 4 – beskrivning">Keramik, 30 cl, flera färger</small><span class="pris" data-slot="text" data-label="Produkt 4 – pris">245 kr</span></div>
       </div>
       <div class="product">
-        <img data-slot="image" data-label="Produktbild 5" src="${ph(700, 700, '#efece8', '#57534e', 'Produktbild 5')}" alt="">
+        <img data-slot="image" data-label="Produktbild 5" src="${window.ex('butik-tray', 700, 700, '#efece8', '#57534e', 'Produktbild 5')}" alt="">
         <div class="pbody"><b data-slot="text" data-label="Produkt 5 – namn">Bricka Ek</b><small data-slot="text" data-label="Produkt 5 – beskrivning">Massiv ek, 45 × 32 cm</small><span class="pris" data-slot="text" data-label="Produkt 5 – pris">465 kr</span></div>
       </div>
       <div class="product">
-        <img data-slot="image" data-label="Produktbild 6" src="${ph(700, 700, '#efece8', '#57534e', 'Produktbild 6')}" alt="">
+        <img data-slot="image" data-label="Produktbild 6" src="${window.ex('butik-cushion', 700, 700, '#efece8', '#57534e', 'Produktbild 6')}" alt="">
         <div class="pbody"><b data-slot="text" data-label="Produkt 6 – namn">Kudde Lin</b><small data-slot="text" data-label="Produkt 6 – beskrivning">Tvättat lin, 50 × 50 cm</small><span class="pris" data-slot="text" data-label="Produkt 6 – pris">349 kr</span></div>
       </div>
     </div>

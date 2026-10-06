@@ -1,6 +1,7 @@
 // Renderaren för Workers: appens oförändrade mallar + js/render.js, med typsnitten inbyggda i paketet
 // (paketeras med esbuild: .woff2 som binary, .txt som text). Ger samma filer som tools/render-project.cjs.
 import './worker-globals.mjs';
+import '../templates/exempelbilder.js';
 import '../templates/index.js';
 import '../templates/restaurang.js';
 import '../templates/salong.js';

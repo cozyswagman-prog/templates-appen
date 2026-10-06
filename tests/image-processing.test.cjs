@@ -14,8 +14,10 @@ test('Re-encodes numbered/named multipage images once, preserves text/alt/focus 
   const before=JSON.stringify(input),result=await preparePublication({app:'templates',version:1,project:input});
   assert.equal(JSON.stringify(input),before); assert.equal(result.imageReport.length,1);
   const images=[...result.files].filter(([name])=>name.startsWith('images/'));
-  assert.equal(images.length,1); assert.match(images[0][0],/\.webp$/);
-  const meta=await sharp(images[0][1]).metadata();
+  // The template's own example photos are published too; the customer's image is the 20×10 one.
+  const own=[];for(const image of images){const m=await sharp(image[1]).metadata();if(m.width===20&&m.height===10)own.push(image);}
+  assert.equal(own.length,1); assert.match(own[0][0],/\.webp$/);
+  const meta=await sharp(own[0][1]).metadata();
   assert.equal(meta.format,'webp');assert.equal(meta.width,20);assert.equal(meta.height,10);assert.equal(meta.hasAlpha,true);
   assert.equal(meta.exif,undefined);assert.equal(meta.xmp,undefined);assert.equal(meta.icc,undefined);
   const doc=new DOMParser().parseFromString(result.files.get('kontakt.html'),'text/html');

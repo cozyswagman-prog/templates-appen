@@ -35,7 +35,7 @@ function createRuntime() {
   const scope = { DOMParser, Event, URL, TextEncoder, atob };
   scope.window = scope;
   vm.createContext(scope, { codeGeneration: { strings: false, wasm: false } });
-  for (const filename of ['templates/index.js', ...IDS.map(id => 'templates/' + id + '.js'), 'js/render.js']) {
+  for (const filename of ['templates/exempelbilder.js', 'templates/index.js', ...IDS.map(id => 'templates/' + id + '.js'), 'js/render.js']) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, filename), 'utf8'), scope, { filename, timeout: 5000 });
   }
   return scope;

@@ -25,6 +25,7 @@ const CORE = [
   'js/editor.js',
   'js/publish-client.js',
   'js/app.js',
+  'templates/exempelbilder.js',
   'templates/index.js',
   'templates/restaurang.js',
   'templates/salong.js',

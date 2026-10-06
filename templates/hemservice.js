@@ -178,7 +178,7 @@ ${window.fontCss('outfit', 'inter')}
       </ul>
       <a class="cta" href="#kontakt" data-slot="text" data-label="Knapp i hero">Få prisförslag inom en timme</a>
     </div>
-    <img data-slot="image" data-label="Hero-bild till höger" src="${ph(860, 760, '#d4e8e5', '#0e9488', 'Bild · t.ex. ett nystädat rum')}" alt="">
+    <img data-slot="image" data-label="Hero-bild till höger" src="${window.ex('hem-hero', 860, 760, '#d4e8e5', '#0e9488', 'Bild · t.ex. ett nystädat rum')}" alt="">
   </div>
 </div>
 

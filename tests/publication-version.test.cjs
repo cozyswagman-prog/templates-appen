@@ -101,6 +101,7 @@ test('Existing destinations and directory junctions are never overwritten or fol
   fs.symlinkSync(external, linked, 'junction');
   await assert.rejects(createVersion(project(), linked), /finns redan/);
   assert.throws(() => verifyVersion(linked), /vanlig mapp/);
+  fs.rmSync(path.join(destination, 'site/images'), { recursive: true, force: true }); // the template's example photos
   fs.symlinkSync(external, path.join(destination, 'site/images'), 'junction');
   assert.throws(() => verifyVersion(destination), /Länkade/);
   assert.equal(fs.readFileSync(path.join(external, 'keep.txt'), 'utf8'), 'Keep');

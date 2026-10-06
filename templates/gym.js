@@ -189,7 +189,7 @@ ${window.fontCss('outfit', 'inter')}
 </div>
 
 <div class="hero">
-  <img class="bg" data-slot="image" data-label="Stor bild i bakgrunden" src="${ph(1600, 900, '#23262e', '#c8f046', 'Hero-bild · t.ex. gymgolvet eller ett pass')}" alt="">
+  <img class="bg" data-slot="image" data-label="Stor bild i bakgrunden" src="${window.ex('gym-hero', 1600, 900, '#23262e', '#c8f046', 'Hero-bild · t.ex. gymgolvet eller ett pass')}" alt="">
   <div class="wrap">
     <div class="kicker" data-slot="text" data-label="Liten text ovanför rubriken">Öppet 05–23 alla dagar</div>
     <h1 data-slot="text" data-label="Stor rubrik">Starkare än igår</h1>
@@ -203,9 +203,9 @@ ${window.fontCss('outfit', 'inter')}
     <h2 class="section-title"><span>//</span> <span data-slot="text" data-label="Rubrik för passen">Veckans pass</span></h2>
     <p class="section-sub" data-slot="text" data-label="Undertext för passen">Alla nivåer är välkomna — instruktören anpassar.</p>
     <div class="pass-grid">
-      <div class="pass"><img data-slot="image" data-label="Pass 1 – bild" src="${ph(700, 500, '#2b2f39', '#c8f046', 'Passbild 1')}" alt=""><div class="pbody"><h3 data-slot="text" data-label="Pass 1 – namn">Styrkelyft Bas</h3><p data-slot="text" data-label="Pass 1 – beskrivning">Mån &amp; Ons 18.00 · Teknik i knäböj, bänk och mark.</p></div></div>
-      <div class="pass"><img data-slot="image" data-label="Pass 2 – bild" src="${ph(700, 500, '#2b2f39', '#c8f046', 'Passbild 2')}" alt=""><div class="pbody"><h3 data-slot="text" data-label="Pass 2 – namn">HIIT 30</h3><p data-slot="text" data-label="Pass 2 – beskrivning">Tis &amp; Tors 17.30 · Trettio svettiga minuter, klart.</p></div></div>
-      <div class="pass"><img data-slot="image" data-label="Pass 3 – bild" src="${ph(700, 500, '#2b2f39', '#c8f046', 'Passbild 3')}" alt=""><div class="pbody"><h3 data-slot="text" data-label="Pass 3 – namn">Mobility &amp; Core</h3><p data-slot="text" data-label="Pass 3 – beskrivning">Lör 10.00 · Rörlighet och bål i lugnt tempo.</p></div></div>
+      <div class="pass"><img data-slot="image" data-label="Pass 1 – bild" src="${window.ex('gym-barbell', 700, 500, '#2b2f39', '#c8f046', 'Passbild 1')}" alt=""><div class="pbody"><h3 data-slot="text" data-label="Pass 1 – namn">Styrkelyft Bas</h3><p data-slot="text" data-label="Pass 1 – beskrivning">Mån &amp; Ons 18.00 · Teknik i knäböj, bänk och mark.</p></div></div>
+      <div class="pass"><img data-slot="image" data-label="Pass 2 – bild" src="${window.ex('gym-kettle', 700, 500, '#2b2f39', '#c8f046', 'Passbild 2')}" alt=""><div class="pbody"><h3 data-slot="text" data-label="Pass 2 – namn">HIIT 30</h3><p data-slot="text" data-label="Pass 2 – beskrivning">Tis &amp; Tors 17.30 · Trettio svettiga minuter, klart.</p></div></div>
+      <div class="pass"><img data-slot="image" data-label="Pass 3 – bild" src="${window.ex('gym-yoga', 700, 500, '#2b2f39', '#c8f046', 'Passbild 3')}" alt=""><div class="pbody"><h3 data-slot="text" data-label="Pass 3 – namn">Mobility &amp; Core</h3><p data-slot="text" data-label="Pass 3 – beskrivning">Lör 10.00 · Rörlighet och bål i lugnt tempo.</p></div></div>
     </div>
   </div>
 </section>
@@ -235,7 +235,7 @@ Mot giltig studentlegitimation</ul></div>
 0920-123 45 · hej@norrskengym.se
 Bemannat vardagar 10–19</p>
     </div>
-    <img data-slot="image" data-label="Bild vid kontakt" src="${ph(800, 520, '#a8cc3a', '#16181d', 'Bild · t.ex. receptionen')}" alt="" style="width:100%; border-radius:14px;">
+    <img data-slot="image" data-label="Bild vid kontakt" src="${window.ex('gym-contact', 800, 520, '#a8cc3a', '#16181d', 'Bild · t.ex. receptionen')}" alt="" style="width:100%; border-radius:14px;">
   </div>
 </section>
 

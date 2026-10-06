@@ -157,7 +157,7 @@ ${window.fontCss('playfair', 'inter')}
 <body>
 
 <header>
-  <img class="bg" data-slot="image" data-label="Stor bild högst upp" src="${ph(1600, 900, '#4a3326', '#f5e9db', 'Hero-bild · t.ex. matsalen eller en signaturrätt')}" alt="">
+  <img class="bg" data-slot="image" data-label="Stor bild högst upp" src="${window.ex('rest-hero', 1600, 900, '#4a3326', '#f5e9db', 'Hero-bild · t.ex. matsalen eller en signaturrätt')}" alt="">
   <div class="hero-inner">
     <div class="kicker" data-slot="text" data-label="Liten text ovanför namnet">Välkommen till</div>
     <h1 data-slot="text" data-label="Restaurangens namn">Trattoria Milano</h1>
@@ -183,9 +183,9 @@ ${window.fontCss('playfair', 'inter')}
     <h2 class="section-title" data-slot="text" data-label="Rubrik för bildgalleriet">Smaka med ögonen</h2>
     <p class="section-sub">&nbsp;</p>
     <div class="gallery-grid">
-      <img data-slot="image" data-label="Galleribild 1" src="${ph(800, 600, '#3a2d22', '#c9a35c', 'Galleribild 1')}" alt="">
-      <img data-slot="image" data-label="Galleribild 2" src="${ph(800, 600, '#3a2d22', '#c9a35c', 'Galleribild 2')}" alt="">
-      <img data-slot="image" data-label="Galleribild 3" src="${ph(800, 600, '#3a2d22', '#c9a35c', 'Galleribild 3')}" alt="">
+      <img data-slot="image" data-label="Galleribild 1" src="${window.ex('rest-pasta', 800, 600, '#3a2d22', '#c9a35c', 'Galleribild 1')}" alt="">
+      <img data-slot="image" data-label="Galleribild 2" src="${window.ex('rest-pizza', 800, 600, '#3a2d22', '#c9a35c', 'Galleribild 2')}" alt="">
+      <img data-slot="image" data-label="Galleribild 3" src="${window.ex('rest-dessert', 800, 600, '#3a2d22', '#c9a35c', 'Galleribild 3')}" alt="">
     </div>
   </div>
 </section>
