@@ -523,6 +523,11 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); 
 }
 
 .preview-only .editor-panel { display: none; }
+/* Titta på mallen: bara visning, inget projekt att spara ännu. */
+.looking-at-template #btn-save, .looking-at-template .editor-more, .looking-at-template #save-status, .looking-at-template #autosave-note { display: none; }
+.looking-at-template .project-name-input { border-color: transparent; background: transparent; cursor: default; }
+.looking-at-template #btn-preview { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+.looking-at-template #btn-preview:hover { background: var(--accent-dark); }
 .shared-field { margin-top: 10px; white-space: normal; font-size: 12px; width: 100%; }
 
 dialog {

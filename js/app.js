@@ -12,6 +12,8 @@
   let deviceMode = 'desktop';
   let showBadges = true;
   let browsingTemplate = false;
+  // "Titta på mallen": bara visning. Inget projekt finns förrän kunden väljer Använd mallen.
+  let lookingAtTemplate = false;
   const badgePreferences = { mobile: true, desktop: innerWidth > 900 };
   let imageBusy = false;
   let saving = false, changes = 0, saved = false, projectContext = null, listRequest = 0;
@@ -465,11 +467,22 @@
       browsingTemplate = false;
       setDevice(deviceMode);
     }
+    if (!enabled) setLookingAtTemplate(false);
     viewEditor.classList.toggle('preview-only', enabled);
     const button = document.getElementById('btn-preview');
-    button.textContent = enabled ? 'Redigera' : 'Förhandsvisa';
+    button.textContent = enabled ? (lookingAtTemplate ? 'Använd mallen' : 'Redigera') : 'Förhandsvisa';
     button.setAttribute('aria-pressed', String(enabled));
     requestAnimationFrame(layoutPreview);
+  }
+
+  function setLookingAtTemplate(enabled) {
+    if (lookingAtTemplate === enabled) return;
+    lookingAtTemplate = enabled;
+    viewEditor.classList.toggle('looking-at-template', enabled);
+    const template = currentProject && window.TEMPLATES.find(t => t.id === currentProject.templateId);
+    nameInput.readOnly = enabled;
+    nameInput.setAttribute('aria-label', enabled ? 'Mall' : 'Projektnamn');
+    if (currentProject) nameInput.value = enabled && template ? template.name : currentProject.name;
   }
 
   function layoutPreview() {
@@ -541,6 +554,7 @@
       body.querySelector('.btn-look').addEventListener('click', () => {
         startTemplate(t.id);
         browsingTemplate = true;
+        setLookingAtTemplate(true);
         setDevice(deviceMode);
         setPreviewOnly(true);
       });
@@ -709,6 +723,7 @@
     auto.stop(); auto.resume();
     saveConflict = false;
     browsingTemplate = false;
+    setLookingAtTemplate(false);
     window.Storage.migrate(project);
     currentProject = project;
     projectContext = store().context();
