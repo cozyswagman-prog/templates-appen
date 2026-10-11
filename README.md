@@ -126,6 +126,13 @@ förskjuts sparade projekt som byggts på den gamla versionen.
 
 2. Lägg till `<script src="templates/minmall.js"></script>` i `index.html` (före `js/`-skripten).
 
+Hjälpare i `templates/index.js` för nya templates:
+
+- `window.tone(bredd, höjd, bakgrund, motivfärg, etikett, motiv)` – lugn platshållarbild i mallens palett
+  (motiv: `arch`, `sun`, `hills`, `grid`, `circle`, `none`). Ser avsiktlig ut innan kunden bytt bild.
+- `${window.siteJs}` precis före `</body>` – sätter `href` på `<a data-tel>`, `<a data-mail>` och `<a data-map>`
+  utifrån länktexten, så att telefon-, mejl- och kartlänkar stämmer när kunden ändrat texten i editorn.
+
 Flersidiga templates: länkar mellan sidorna skrivs som vanliga `href="meny.html"` — editorn
 fångar klicken och byter sida, och exporten skapar en fil per sida.
 
